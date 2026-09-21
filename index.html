@@ -1,0 +1,1579 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ResusLog Pro: Advanced Cardiac Life Support Recorder</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font Inter / Kanit for Thai -->
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Kanit', 'Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#035483',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Keyframe animations for visual pulse alert */
+        @keyframes flash-red {
+            0%, 100% { background-color: #ef4444; color: white; border-color: #dc2626; }
+            50% { background-color: #fee2e2; color: #991b1b; border-color: #f87171; }
+        }
+        @keyframes flash-amber {
+            0%, 100% { background-color: #f59e0b; color: white; border-color: #d97706; }
+            50% { background-color: #fef3c7; color: #92400e; border-color: #fbbf24; }
+        }
+        .animate-flash-red {
+            animation: flash-red 1s infinite;
+        }
+        .animate-flash-amber {
+            animation: flash-amber 1s infinite;
+        }
+        /* Custom scrollbar for timeline */
+        .timeline-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .timeline-scroll::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .timeline-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .timeline-scroll::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        /* Printable view CSS setup */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printable-area, #printable-area * {
+                visibility: visible;
+            }
+            #printable-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                background: white !important;
+                color: black !important;
+                padding: 15px;
+            }
+            .no-print {
+                display: none !important;
+            }
+            @page {
+                size: A4 portrait;
+                margin: 1cm;
+            }
+            .page-break {
+                page-break-before: always;
+            }
+        }
+        @media print and (orientation: landscape) {
+            @page {
+                size: A4 landscape;
+                margin: 1cm;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 font-sans text-slate-800 min-h-screen flex flex-col justify-between selection:bg-sky-500 selection:text-white">
+
+    <!-- Top Main Header -->
+    <header class="bg-gradient-to-r from-slate-900 via-sky-900 to-slate-900 text-white shadow-md border-b border-sky-700/50 sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-sky-500 flex items-center justify-center shadow-lg text-white font-bold text-xl">
+                    <i class="fa-solid font-bold fa-heart-pulse animate-pulse"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                        ResusLog Pro
+                        <span class="text-xs font-normal px-2 py-0.5 rounded-full bg-sky-500/30 border border-sky-400/40 text-sky-200">ACLS Recorder</span>
+                    </h1>
+                    <p class="text-xs text-sky-200/80 hidden sm:block">Advanced Life Support Clinical Documentation System</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="confirmResetAll()" class="bg-rose-600/90 hover:bg-rose-700 text-white px-3.5 py-1.5 rounded-lg text-sm font-medium transition shadow-sm hover:shadow flex items-center gap-1.5 border border-rose-500">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    <span>Reset All Data</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Grid Layout -->
+    <main class="max-w-7xl mx-auto w-full px-3 sm:px-4 py-4 space-y-4 flex-grow">
+
+        <!-- Section 2: Patient & Arrest Information -->
+        <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 transition-all">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2 mb-3">
+                <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-hospital-user text-sky-600"></i>
+                    ส่วนที่ 1: ข้อมูลผู้ป่วยและเหตุการณ์ (Patient & Arrest Details)
+                </h2>
+                <span class="text-xs text-slate-400 font-mono">SEC-01</span>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-3 text-sm">
+                <!-- Patient Name -->
+                <div class="md:col-span-5">
+                    <label class="block text-xs font-medium text-slate-600 mb-1">ชื่อ - นามสกุล (Patient Name)</label>
+                    <input type="text" id="ptName" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition" placeholder="ระบุชื่อ-นามสกุล...">
+                </div>
+                <!-- Age -->
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-medium text-slate-600 mb-1">อายุ (Age)</label>
+                    <input type="number" id="ptAge" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition" placeholder="ปี">
+                </div>
+                <!-- HN -->
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-medium text-slate-600 mb-1">HN</label>
+                    <input type="text" id="ptHn" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition" placeholder="ระบุ HN">
+                </div>
+                <!-- Recorder Name -->
+                <div class="md:col-span-3">
+                    <label class="block text-xs font-medium text-slate-600 mb-1">ผู้บันทึก (Recorder Name)</label>
+                    <input type="text" id="ptRecorder" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition" placeholder="ชื่อพยาบาล/แพทย์">
+                </div>
+
+                <!-- Department -->
+                <div class="md:col-span-4">
+                    <label class="block text-xs font-medium text-slate-600 mb-1">แผนก / หอผู้ป่วย (Department)</label>
+                    <input type="text" id="ptDept" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition" placeholder="เช่น ER, ICU, หอผู้ป่วยอายุรกรรม...">
+                </div>
+                <!-- Arrest Time -->
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-medium text-slate-600 mb-1">เวลาเกิด Arrest</label>
+                    <input type="time" id="ptArrestTime" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition">
+                </div>
+                <!-- Witnessed -->
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Witness status</label>
+                    <select id="ptWitness" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none bg-white transition">
+                        <option value="Non-witnessed">Non-witnessed</option>
+                        <option value="Witnessed">Witnessed</option>
+                    </select>
+                </div>
+                <!-- Bystander CPR -->
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Bystander CPR</label>
+                    <select id="ptBystander" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none bg-white transition">
+                        <option value="No">ไม่มี (No)</option>
+                        <option value="Yes">มี (Yes)</option>
+                    </select>
+                </div>
+                <!-- No Flow Time -->
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-medium text-slate-600 mb-1">No flow time (นาที)</label>
+                    <input type="number" id="ptNoFlow" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition" placeholder="0">
+                </div>
+
+                <!-- Event Details Free Text -->
+                <div class="md:col-span-12">
+                    <label class="block text-xs font-medium text-slate-600 mb-1">รายละเอียดเหตุการณ์ก่อน/ขณะเกิดเหตุ (Event Description)</label>
+                    <textarea id="ptEventDesc" rows="2" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition resize-y text-xs sm:text-sm" placeholder="บันทึกอาการเบื้องต้น สาเหตุ หรือข้อสังเกตเพิ่มเติม..."></textarea>
+                </div>
+            </div>
+        </section>
+
+        <!-- Middle Split: Left Controls & Right Real-Time Timeline -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+            <!-- Left Panel: Resuscitation Timers and Actions -->
+            <div class="lg:col-span-7 space-y-4">
+                
+                <!-- Section 3: Main Controls (Start/Stop + EKG) -->
+                <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-2 mb-3">
+                        <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-play text-emerald-600"></i>
+                            ส่วนที่ 2: เริ่มกระบวนการ & จังหวะหัวใจ (Main Timer & EKG)
+                        </h2>
+                        <div id="runtimeDisplay" class="font-mono text-xs bg-slate-100 px-2.5 py-1 rounded-md text-slate-700 font-bold border border-slate-200">
+                            Elapsed: 00:00:00
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <!-- Start / Stop Program Button -->
+                        <button id="btnStartProg" onclick="toggleStartProgram()" class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold shadow-md transition flex items-center justify-center gap-2 text-base">
+                            <i class="fa-solid fa-play"></i>
+                            <span id="txtStartProg">Start Program</span>
+                        </button>
+
+                        <!-- EKG Modal Trigger -->
+                        <button onclick="openEkgModal()" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold shadow-md transition flex items-center justify-center gap-2 text-base">
+                            <i class="fa-solid fa-wave-square"></i>
+                            <span>บันทึก EKG / Rhythm</span>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Section 4: Timers (Chest Compression & Adrenaline) -->
+                <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-3">
+                    <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2">
+                        <i class="fa-solid fa-stopwatch text-rose-600"></i>
+                        ส่วนที่ 3: หัตถการและตัวนับเวลา (Timers & Interventions)
+                    </h2>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <!-- Chest Compression Button -->
+                        <div class="relative">
+                            <button id="btnChestComp" onclick="handleChestCompClick()" class="w-full min-h-[72px] py-3 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-semibold shadow-md transition flex flex-col items-center justify-center border-2 border-rose-600">
+                                <span class="flex items-center gap-2 text-base" id="txtCompMain">
+                                    <i class="fa-solid fa-hand-holding-heart"></i> Start Chest Compression
+                                </span>
+                                <span id="timeCompSub" class="text-xs font-mono opacity-90 mt-0.5">รอบ 2 นาที (02:00)</span>
+                            </button>
+                        </div>
+
+                        <!-- Adrenaline Button with Reset side button -->
+                        <div class="flex items-center gap-1.5">
+                            <button id="btnAdrenaline" onclick="handleAdrenalineClick()" class="flex-grow min-h-[72px] py-3 px-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-semibold shadow-md transition flex flex-col items-center justify-center border-2 border-amber-600">
+                                <span class="flex items-center gap-2 text-base" id="txtAdrMain">
+                                    <i class="fa-solid fa-syringe"></i> Start Adrenaline
+                                </span>
+                                <span id="timeAdrSub" class="text-xs font-mono opacity-90 mt-0.5">รอบ 3 นาที (03:00)</span>
+                            </button>
+                            <button onclick="resetAdrenalineTimer()" title="รีเซ็ตเวลานิวแอดรีนาลีน" class="h-[72px] px-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-medium transition border border-slate-300 flex items-center justify-center text-xs flex-col">
+                                <i class="fa-solid fa-arrow-rotate-left text-sm mb-1"></i>
+                                <span>Reset</span>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Section 5: Medication, IV, Airway & 5H5T Causes -->
+                <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-4">
+                    <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2">
+                        <i class="fa-solid fa-pills text-sky-600"></i>
+                        ส่วนที่ 4: ยา/สารน้ำ, ทางเดินหายใจ และ สาเหตุ Reversible Cause
+                    </h2>
+
+                    <!-- Drug Line -->
+                    <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200 space-y-2">
+                        <span class="text-xs font-bold text-slate-600 block">1. ให้ยาเพิ่มเติม (Medications)</span>
+                        <div class="grid grid-cols-12 gap-2 text-xs">
+                            <div class="col-span-5 sm:col-span-5">
+                                <input list="drugList" id="medName" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-md outline-none focus:ring-1 focus:ring-sky-500" placeholder="เลือกหรือพิมพ์ชื่อยา...">
+                                <datalist id="drugList">
+                                    <option value="Amiodarone"></option>
+                                    <option value="7.5% NaHCO3"></option>
+                                    <option value="RI"></option>
+                                    <option value="Glucose"></option>
+                                    <option value="10% Calcium Gluconate"></option>
+                                </datalist>
+                            </div>
+                            <div class="col-span-3 sm:col-span-3">
+                                <input type="text" id="medDose" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-md outline-none focus:ring-1 focus:ring-sky-500" placeholder="ปริมาณ (ระบุ)">
+                            </div>
+                            <div class="col-span-4 sm:col-span-2">
+                                <input list="unitList" id="medUnit" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-md outline-none focus:ring-1 focus:ring-sky-500" placeholder="หน่วย">
+                                <datalist id="unitList">
+                                    <option value="mg"></option>
+                                    <option value="amp"></option>
+                                    <option value="microgram"></option>
+                                    <option value="unit"></option>
+                                    <option value="ml"></option>
+                                </datalist>
+                            </div>
+                            <div class="col-span-12 sm:col-span-2">
+                                <button onclick="confirmDrug()" class="w-full py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-md font-medium text-xs transition">Confirm</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- IV Fluid Line -->
+                    <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200 space-y-2">
+                        <span class="text-xs font-bold text-slate-600 block">2. สารน้ำ (IV Fluids)</span>
+                        <div class="grid grid-cols-12 gap-2 text-xs">
+                            <div class="col-span-5 sm:col-span-5">
+                                <input list="fluidList" id="fluidName" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-md outline-none focus:ring-1 focus:ring-sky-500" placeholder="ชนิดสารน้ำ...">
+                                <datalist id="fluidList">
+                                    <option value="0.9% NSS"></option>
+                                    <option value="RLS"></option>
+                                    <option value="Acetar"></option>
+                                    <option value="10% DN/2"></option>
+                                    <option value="5% DN/2"></option>
+                                </datalist>
+                            </div>
+                            <div class="col-span-3 sm:col-span-3">
+                                <input list="fluidVolList" id="fluidVol" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-md outline-none focus:ring-1 focus:ring-sky-500" placeholder="ขนาด (ml)">
+                                <datalist id="fluidVolList">
+                                    <option value="1,000 ml"></option>
+                                    <option value="500 ml"></option>
+                                    <option value="100 ml"></option>
+                                </datalist>
+                            </div>
+                            <div class="col-span-4 sm:col-span-2">
+                                <div class="flex items-center">
+                                    <input type="text" id="fluidRate" class="w-full px-2 py-1.5 border border-slate-300 rounded-md outline-none focus:ring-1 focus:ring-sky-500 text-xs" placeholder="Rate">
+                                    <span class="text-[10px] text-slate-500 ml-1">cc/hr</span>
+                                </div>
+                            </div>
+                            <div class="col-span-12 sm:col-span-2">
+                                <button onclick="confirmFluid()" class="w-full py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-md font-medium text-xs transition">Confirm</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Airway Line -->
+                    <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200 space-y-2">
+                        <span class="text-xs font-bold text-slate-600 block">3. การจัดการทางเดินหายใจ (Airway)</span>
+                        <div class="grid grid-cols-12 gap-2 text-xs">
+                            <div class="col-span-4 sm:col-span-4">
+                                <input list="airwayList" id="airwayType" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-md outline-none focus:ring-1 focus:ring-sky-500" placeholder="ชนิดอุปกรณ์...">
+                                <datalist id="airwayList">
+                                    <option value="ET-tube"></option>
+                                    <option value="LMA"></option>
+                                    <option value="NPA"></option>
+                                    <option value="OPA"></option>
+                                </datalist>
+                            </div>
+                            <div class="col-span-3 sm:col-span-3">
+                                <input type="text" id="airwaySize" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-md outline-none focus:ring-1 focus:ring-sky-500" placeholder="ขนาด (Size)">
+                            </div>
+                            <div class="col-span-3 sm:col-span-3">
+                                <input type="text" id="airwayDepth" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-md outline-none focus:ring-1 focus:ring-sky-500" placeholder="ความลึก (cm)">
+                            </div>
+                            <div class="col-span-2 sm:col-span-2">
+                                <button onclick="confirmAirway()" class="w-full py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-md font-medium text-xs transition">Confirm</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- EtCO2 Line -->
+                    <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200 space-y-2">
+                        <span class="text-xs font-bold text-slate-600 block">4. ค่าแรงดันก๊าซคาร์บอนไดออกไซด์ขณะหายใจออก (EtCO2)</span>
+                        <div class="grid grid-cols-12 gap-2 text-xs">
+                            <div class="col-span-10 sm:col-span-10 flex items-center gap-2">
+                                <input type="number" id="etco2Val" min="0" max="150" step="0.1" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-md outline-none focus:ring-1 focus:ring-sky-500" placeholder="ระบุค่า EtCO2 (เช่น 35, 40...)">
+                                <span class="text-xs font-semibold text-slate-600 shrink-0">mmHg</span>
+                            </div>
+                            <div class="col-span-2 sm:col-span-2">
+                                <button onclick="confirmEtCO2()" class="w-full py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-md font-medium text-xs transition">Confirm</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reversible Causes (5Hs & 5Ts) -->
+                    <div class="space-y-2 pt-1">
+                        <span class="text-xs font-bold text-slate-700 flex items-center justify-between">
+                            <span>5. ประเมิน Reversible Causes (5Hs & 5Ts Guidelines)</span>
+                            <span class="text-[11px] font-normal text-slate-500">เขียว: Pass | ส้ม: N/A | แดง: Problem</span>
+                        </span>
+                        
+                        <div class="grid grid-cols-2 sm:grid-cols-5 gap-1.5" id="reversibleCauseGrid">
+                            <!-- 10 Buttons generated programmatically -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Section 6: Result / Outcome -->
+                <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                    <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2 mb-3">
+                        <i class="fa-solid fa-flag-checkered text-slate-700"></i>
+                        ส่วนที่ 5: สรุปผลการช่วยฟื้นคืนชีพ (Resuscitation Outcome)
+                    </h2>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="setOutcome('ROSC')" class="py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow transition flex items-center justify-center gap-2 text-base">
+                            <i class="fa-solid fa-heart-circle-check"></i> ROSC (Return of Circulation)
+                        </button>
+                        <button onclick="setOutcome('DEAD')" class="py-3 px-4 bg-slate-700 hover:bg-slate-800 text-white rounded-xl font-bold shadow transition flex items-center justify-center gap-2 text-base">
+                            <i class="fa-solid fa-ribbon"></i> DECEASED (Dead)
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Section 7: CPR Summary Dashboard -->
+                <section class="bg-gradient-to-br from-slate-900 to-sky-950 text-white rounded-xl shadow-md p-4">
+                    <h2 class="text-sm font-semibold text-sky-300 flex items-center gap-2 border-b border-slate-700 pb-2 mb-3">
+                        <i class="fa-solid fa-chart-pie"></i>
+                        สรุปสถิติกระบวนการ CPR (CPR Performance Metrics)
+                    </h2>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                        <div class="bg-white/10 rounded-lg p-2.5 backdrop-blur-sm">
+                            <div class="text-[11px] text-slate-300">ระยะเวลารวม (CPR Time)</div>
+                            <div id="statTotalTime" class="text-lg font-bold text-sky-200 font-mono mt-0.5">00:00</div>
+                        </div>
+                        <div class="bg-white/10 rounded-lg p-2.5 backdrop-blur-sm">
+                            <div class="text-[11px] text-slate-300">จำนวน CPR Cycles</div>
+                            <div id="statCycles" class="text-lg font-bold text-emerald-300 font-mono mt-0.5">0 รอบ</div>
+                        </div>
+                        <div class="bg-white/10 rounded-lg p-2.5 backdrop-blur-sm">
+                            <div class="text-[11px] text-slate-300">Adrenaline ทั้งหมด</div>
+                            <div id="statAdrDoses" class="text-lg font-bold text-amber-300 font-mono mt-0.5">0 dose</div>
+                        </div>
+                        <div class="bg-white/10 rounded-lg p-2.5 backdrop-blur-sm">
+                            <div class="text-[11px] text-slate-300">% CCF (Chest Comp Ratio)</div>
+                            <div id="statCcf" class="text-lg font-bold text-rose-300 font-mono mt-0.5">0%</div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- Right Panel: Real-Time Timeline Stream -->
+            <div class="lg:col-span-5 flex flex-col space-y-4">
+                <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex-grow flex flex-col min-h-[480px]">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-2 mb-3">
+                        <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-clock-rotate-left text-sky-600"></i>
+                            Timeline ลำดับเหตุการณ์ Real-time
+                        </h2>
+                        <span id="timelineCount" class="text-xs bg-sky-100 text-sky-800 px-2 py-0.5 rounded-full font-medium">0 เหตุการณ์</span>
+                    </div>
+
+                    <!-- Scrollable Log Container -->
+                    <div id="timelineContainer" class="timeline-scroll flex-grow overflow-y-auto space-y-2 pr-1 max-h-[550px] border border-slate-100 p-2 rounded-lg bg-slate-50/50">
+                        <div id="timelineEmpty" class="text-center text-slate-400 py-12 text-xs">
+                            <i class="fa-regular fa-clipboard text-3xl mb-2 text-slate-300"></i>
+                            <p>ยังไม่มีบันทึก กด "Start Program" หรือทำหัตถการเพื่อเริ่ม stamp เวลา</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Bottom Export Action Controls -->
+                <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-2">
+                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">เมนูกระบวนการบันทึกเอกสาร</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <button id="btnSaveRecord" onclick="saveRecord()" class="py-2.5 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow transition flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-floppy-disk"></i> บันทึกข้อมูล (Save)
+                        </button>
+                        <button id="btnPrintPdf" onclick="printDoc()" disabled class="py-2.5 px-3 bg-slate-300 text-slate-500 cursor-not-allowed rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-print"></i> พิมพ์เอกสาร (Print)
+                        </button>
+                        <button id="btnActionSummary" onclick="showActionSummary()" disabled class="py-2.5 px-3 bg-slate-300 text-slate-500 cursor-not-allowed rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-chart-line"></i> Action Summary
+                        </button>
+                    </div>
+                    <p id="saveHint" class="text-[11px] text-amber-600 text-center pt-1"><i class="fa-solid fa-circle-info"></i> ต้องกด Stop Program ก่อนจึงจะสามารถบันทึกและพิมพ์เอกสารได้</p>
+                </section>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer Credit -->
+    <footer class="bg-slate-900 text-slate-400 text-center py-3 text-xs border-t border-slate-800 mt-6">
+        <p>ResusLog Pro &copy; ACLS Documentation System &bull; <span class="text-sky-400 font-medium">created by Wittaya Pholoung (ENP)</span></p>
+    </footer>
+
+    <!-- Modals -->
+    <!-- Modal: EKG Rhythm Selection -->
+    <div id="modalEkg" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-5 space-y-4 border border-slate-100 transform transition-all">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-heart-pulse text-rose-500"></i> เลือกคลื่นไฟฟ้าหัวใจ (EKG Rhythm)
+                </h3>
+                <button onclick="closeModal('modalEkg')" class="text-slate-400 hover:text-slate-600 text-lg">&times;</button>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="selectEkg('Asystole')" class="py-3 px-3 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-xl font-bold text-slate-700 text-sm transition">
+                    Asystole
+                </button>
+                <button onclick="selectEkg('PEA')" class="py-3 px-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl font-bold text-blue-800 text-sm transition">
+                    PEA
+                </button>
+                <button onclick="selectEkg('VF')" class="py-3 px-3 bg-rose-50 hover:bg-rose-100 border border-rose-300 rounded-xl font-bold text-rose-800 text-sm transition">
+                    VF (Shockable)
+                </button>
+                <button onclick="selectEkg('pVT')" class="py-3 px-3 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-xl font-bold text-amber-800 text-sm transition">
+                    pVT (Shockable)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Defibrillation Energy -->
+    <div id="modalDefib" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full p-5 space-y-4 border border-slate-100">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                <h3 class="text-base font-bold text-rose-600 flex items-center gap-2">
+                    <i class="fa-solid fa-bolt text-amber-500"></i> Defibrillation Settings
+                </h3>
+            </div>
+            <p class="text-xs text-slate-600">เนื่องจากเลือกคลื่นสัญญาณ Shockable Rhythm (VF / pVT) กรุณาเลือกพลังงานสำหรับการ Defibrillation:</p>
+            
+            <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <label class="text-xs font-semibold text-slate-700">พลังงาน (Joules):</label>
+                    <span id="defibValDisplay" class="font-mono font-bold text-lg text-rose-600">200 J</span>
+                </div>
+                <input type="range" id="defibRange" min="2" max="200" step="1" value="200" oninput="document.getElementById('defibValDisplay').innerText = this.value + ' J'" class="w-full accent-rose-600">
+                <div class="flex justify-between text-[10px] text-slate-400 font-mono">
+                    <span>2J</span>
+                    <span>50J</span>
+                    <span>100J</span>
+                    <span>150J</span>
+                    <span>200J</span>
+                </div>
+            </div>
+
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeModal('modalDefib')" class="w-1/2 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold">ยกเลิก</button>
+                <button onclick="confirmDefib()" class="w-1/2 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold shadow">Confirm Shock</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Reversible Cause Choice Modal -->
+    <div id="modalCauseChoice" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-xs w-full p-5 space-y-3 border border-slate-100">
+            <h3 id="causeModalTitle" class="text-sm font-bold text-slate-800 border-b pb-2 text-center">ประเมิน Reversible Cause</h3>
+            <div class="space-y-2">
+                <button onclick="setCauseStatus('Pass')" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium text-xs">
+                    Pass (ปกติ)
+                </button>
+                <button onclick="setCauseStatus('N/A')" class="w-full py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium text-xs">
+                    N/A (ไม่ระบุ / ไม่ทราบ)
+                </button>
+                <button onclick="openCauseProblemInput()" class="w-full py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-medium text-xs">
+                    Problem (พบปัญหา)
+                </button>
+            </div>
+            <button onclick="closeModal('modalCauseChoice')" class="w-full py-1 text-slate-400 hover:text-slate-600 text-xs text-center">ปิด</button>
+        </div>
+    </div>
+
+    <!-- Modal: Reversible Cause Problem Free Text -->
+    <div id="modalCauseProblem" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full p-5 space-y-3 border border-slate-100">
+            <h3 id="causeProbTitle" class="text-sm font-bold text-rose-700 border-b pb-2">ระบุรายละเอียดปัญหา</h3>
+            <textarea id="causeProblemText" rows="3" class="w-full p-2 border border-slate-300 rounded-lg text-xs outline-none focus:ring-1 focus:ring-rose-500" placeholder="พิมพ์รายละเอียดปัญหา..."></textarea>
+            <div class="flex gap-2">
+                <button onclick="closeModal('modalCauseProblem')" class="w-1/2 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold">ยกเลิก</button>
+                <button onclick="confirmCauseProblem()" class="w-1/2 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold shadow">Confirm Problem</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Printable View Render Target -->
+    <div id="printable-area" class="hidden">
+        <div class="text-center border-b pb-3 mb-4">
+            <h1 class="text-xl font-bold">รายงานบันทึกการช่วยฟื้นคืนชีพขั้นสูง (ACLS Resuscitation Record)</h1>
+            <p class="text-xs text-gray-600">ResusLog Pro &bull; Created by Wittaya Pholoung (ENP)</p>
+        </div>
+
+        <div id="printPatientHeader" class="border p-3 rounded mb-4 text-xs space-y-2 bg-gray-50"></div>
+
+        <div class="mb-4">
+            <h2 class="text-sm font-bold border-b pb-1 mb-2">สรุปสถิติ CPR (CPR Summary)</h2>
+            <div id="printStats" class="grid grid-cols-4 gap-2 text-xs border p-2 rounded"></div>
+        </div>
+
+        <div>
+            <h2 class="text-sm font-bold border-b pb-1 mb-2">บันทึกเหตุการณ์ตามเวลาจริง (Timeline Logs)</h2>
+            <table class="w-full border-collapse border text-xs">
+                <thead>
+                    <tr class="bg-gray-100">
+                        <th class="border p-1.5 w-24 text-left">เวลา</th>
+                        <th class="border p-1.5 text-left">เหตุการณ์ / การรักษา</th>
+                    </tr>
+                </thead>
+                <tbody id="printTimelineTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Enhanced Action Summary Graph Modal / View -->
+    <div id="modalSummaryGraph" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-2 sm:p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[92vh] flex flex-col p-4 sm:p-5 overflow-hidden">
+            <div class="flex justify-between items-center border-b pb-3 shrink-0">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line text-sky-600"></i> Action Summary Timeline Chart (Multi-Track)
+                    </h3>
+                    <p class="text-xs text-slate-500">จำแนกเหตุการณ์ตามลู่เวลา (Tracks) พร้อมแกนเวลาสัมพัทธ์ (Relative Minutes: 0, 1, 2...)</p>
+                </div>
+                <div class="flex gap-2 items-center">
+                    <button onclick="printSummaryChart()" class="bg-sky-600 hover:bg-sky-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 shadow">
+                        <i class="fa-solid fa-print"></i> พิมพ์กราฟ
+                    </button>
+                    <button onclick="closeModal('modalSummaryGraph')" class="text-slate-400 hover:text-slate-600 text-xl px-2">&times;</button>
+                </div>
+            </div>
+
+            <!-- Canvas Container -->
+            <div class="flex-grow my-3 bg-slate-50 border rounded-xl p-2 relative flex flex-col items-center justify-center overflow-auto">
+                <canvas id="timelineCanvas" class="max-w-full max-h-full rounded cursor-pointer"></canvas>
+                <!-- Canvas Tooltip floating element -->
+                <div id="canvasTooltip" class="absolute hidden bg-slate-900/90 text-white text-[11px] p-2 rounded-lg shadow-xl pointer-events-none z-20 max-w-xs border border-slate-700 backdrop-blur-sm"></div>
+            </div>
+
+            <!-- Comprehensive Icon Legend -->
+            <div class="shrink-0 border-t pt-2.5 text-xs text-slate-700 grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                <div class="flex items-center gap-2">
+                    <span class="w-3.5 h-3.5 rounded-full bg-blue-500 inline-block border border-white shadow-sm"></span>
+                    <span><strong>Track 1:</strong> EKG Rhythm (Circle)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-3.5 h-3.5 bg-rose-600 rotate-45 inline-block shadow-sm"></span>
+                    <span><strong>Track 2:</strong> Defib Shock (Diamond)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-3.5 h-3.5 bg-emerald-600 inline-block rounded-sm shadow-sm"></span>
+                    <span><strong>Track 2:</strong> CPR / Pulse Check (Square)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-3.5 h-3.5 bg-amber-500 inline-block rounded-full border border-white shadow-sm"></span>
+                    <span><strong>Track 2:</strong> Adrenaline (Amber Circle)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[10px] border-b-sky-600 inline-block"></span>
+                    <span><strong>Track 3:</strong> Meds / IV (Triangle Up)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[10px] border-t-teal-600 inline-block"></span>
+                    <span><strong>Track 3:</strong> Airway / EtCO2 (Triangle Down)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-3.5 h-3.5 bg-purple-600 inline-block rounded-sm rotate-45 border border-white shadow-sm"></span>
+                    <span><strong>Track 4:</strong> 5Hs & 5Ts (Purple Diamond)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-3.5 h-3.5 bg-slate-800 rounded-full inline-block shadow-sm"></span>
+                    <span><strong>Start/Outcome:</strong> Program Event</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global Application State
+        let isProgramRunning = false;
+        let programStartTime = null;
+        let programStopTime = null;
+        let runtimeInterval = null;
+        
+        // Timers State
+        let compTimer = null;
+        let compTimeRemaining = 120; // 2 minutes
+        let compState = 'IDLE'; // IDLE, RUNNING, CHECK_PULSE
+        let compCount = 0; // Total cycles
+        let compTotalSeconds = 0; // Accumulated compression seconds for CCF
+        let compAlarmInterval = null;
+
+        let adrTimer = null;
+        let adrTimeRemaining = 180; // 3 minutes
+        let adrState = 'IDLE'; // IDLE, RUNNING, INJECT
+        let adrDoses = 0;
+        let adrAlarmInterval = null;
+
+        // Timeline array
+        let timelineData = []; // { id, time, timestamp, text, category, relMin }
+        let isRecordSaved = false;
+
+        // Reversible Causes list
+        const causesList = [
+            { id: 'hypovolemia', label: 'Hypovolemia', status: 'DEFAULT', text: '' },
+            { id: 'hypoxia', label: 'Hypoxia', status: 'DEFAULT', text: '' },
+            { id: 'hydrogen', label: 'Hydrogen ion (Acidosis)', status: 'DEFAULT', text: '' },
+            { id: 'hypoHyperK', label: 'Hypo/Hyperkalemia', status: 'DEFAULT', text: '' },
+            { id: 'hypothermia', label: 'Hypothermia', status: 'DEFAULT', text: '' },
+            { id: 'tensionPneumo', label: 'Tension pneumothorax', status: 'DEFAULT', text: '' },
+            { id: 'tamponade', label: 'Tamponade, cardiac', status: 'DEFAULT', text: '' },
+            { id: 'toxins', label: 'Toxins', status: 'DEFAULT', text: '' },
+            { id: 'thrombosisPulm', label: 'Thrombosis, pulmonary', status: 'DEFAULT', text: '' },
+            { id: 'thrombosisCor', label: 'Thrombosis, coronary', status: 'DEFAULT', text: '' }
+        ];
+
+        let selectedCauseIndex = null;
+        let canvasPlotPoints = []; // Interactive hover targets for Canvas
+
+        // Initialize Audio Context for Speech/Beeper Synthesis
+        let audioCtx = null;
+        function getAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            return audioCtx;
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderReversibleCauses();
+            updateSummaryMetrics();
+            initCanvasHover();
+        });
+
+        // Format current date-time as HH:mm:ss
+        function getRealTimeStr() {
+            const d = new Date();
+            return d.toTimeString().split(' ')[0];
+        }
+
+        function formatDuration(totalSeconds) {
+            const hrs = Math.floor(totalSeconds / 3600);
+            const mins = Math.floor((totalSeconds % 3600) / 60);
+            const secs = Math.floor(totalSeconds % 60);
+            return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function playBeepSound(frequency = 880, duration = 0.3) {
+            try {
+                const ctx = getAudioContext();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = frequency;
+                gain.gain.value = 0.2;
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + duration);
+            } catch (e) {
+                console.log("Audio play suppressed or unsupported");
+            }
+        }
+
+        function speakText(text) {
+            playBeepSound(660, 0.2);
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'en-US';
+                utterance.rate = 1.0;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function toggleStartProgram() {
+            if (!isProgramRunning) {
+                // Start Program
+                isProgramRunning = true;
+                programStartTime = new Date();
+                programStopTime = null;
+                isRecordSaved = false;
+
+                document.getElementById('btnStartProg').className = "w-full py-3 px-4 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-semibold shadow-md transition flex items-center justify-center gap-2 text-base";
+                document.getElementById('txtStartProg').innerText = "Stop Program";
+
+                addTimelineEvent("Start Program - เริ่มต้นการทำ ACLS Protocol", "system");
+
+                // Start Runtime Clock
+                runtimeInterval = setInterval(() => {
+                    const elapsedSec = Math.floor((new Date() - programStartTime) / 1000);
+                    document.getElementById('runtimeDisplay').innerText = `Elapsed: ${formatDuration(elapsedSec)}`;
+                    updateSummaryMetrics();
+                }, 1000);
+
+            } else {
+                // Stop Program
+                isProgramRunning = false;
+                programStopTime = new Date();
+                clearInterval(runtimeInterval);
+
+                document.getElementById('btnStartProg').className = "w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold shadow-md transition flex items-center justify-center gap-2 text-base";
+                document.getElementById('txtStartProg').innerText = "Start Program";
+
+                const elapsedSec = Math.floor((programStopTime - programStartTime) / 1000);
+                addTimelineEvent(`Stop Program - สิ้นสุดโปรแกรม ใช้เวลารวม ${Math.floor(elapsedSec / 60)} นาที ${elapsedSec % 60} วินาที`, "system");
+                
+                // Stop ongoing alarms
+                clearCompAlarm();
+                clearAdrAlarm();
+                updateSummaryMetrics();
+            }
+        }
+
+        function openEkgModal() {
+            document.getElementById('modalEkg').classList.remove('hidden');
+        }
+
+        function selectEkg(rhythm) {
+            closeModal('modalEkg');
+            addTimelineEvent(`EKG Rhythm: ${rhythm}`, rhythm === 'VF' || rhythm === 'pVT' ? 'shock' : 'ekg');
+
+            if (rhythm === 'VF' || rhythm === 'pVT') {
+                openDefibModal();
+            }
+        }
+
+        function openDefibModal() {
+            document.getElementById('defibRange').value = 200;
+            document.getElementById('defibValDisplay').innerText = "200 J";
+            document.getElementById('modalDefib').classList.remove('hidden');
+        }
+
+        function confirmDefib() {
+            const joules = document.getElementById('defibRange').value;
+            closeModal('modalDefib');
+            addTimelineEvent(`Defibrillation ${joules} J`, 'shock');
+        }
+
+        function handleChestCompClick() {
+            const btn = document.getElementById('btnChestComp');
+            
+            if (compState === 'IDLE' || compState === 'RUNNING') {
+                if (compState === 'RUNNING') {
+                    // Early click before 2 minutes
+                    clearInterval(compTimer);
+                    const runSeconds = 120 - compTimeRemaining;
+                    compTotalSeconds += runSeconds;
+                    addTimelineEvent(`Chest Compression หยุดก่อนครบเวลา (ปั๊มไป ${runSeconds} วินาที)`, 'comp');
+                } else {
+                    addTimelineEvent("Start Chest Compression", "comp");
+                }
+
+                // Reset and start 2-min countdown
+                compState = 'RUNNING';
+                compTimeRemaining = 120;
+                clearCompAlarm();
+                btn.className = "w-full min-h-[72px] py-3 px-3 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-semibold shadow-md transition flex flex-col items-center justify-center border-2 border-sky-600";
+                
+                compTimer = setInterval(() => {
+                    compTimeRemaining--;
+                    compTotalSeconds++;
+                    const m = Math.floor(compTimeRemaining / 60).toString().padStart(2, '0');
+                    const s = (compTimeRemaining % 60).toString().padStart(2, '0');
+                    document.getElementById('txtCompMain').innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Compression (${m}:${s})`;
+                    
+                    if (compTimeRemaining <= 0) {
+                        clearInterval(compTimer);
+                        triggerCheckPulseState();
+                    }
+                }, 1000);
+
+            } else if (compState === 'CHECK_PULSE') {
+                // Clicked Check Pulse button
+                clearCompAlarm();
+                compCount++;
+                addTimelineEvent(`Check Pulse (เสร็จสิ้น CPR Cycle ที่ ${compCount})`, 'comp');
+
+                // From 2nd Check pulse onwards, pop up EKG
+                if (compCount >= 1) {
+                    openEkgModal();
+                }
+
+                // Return to initial Start Chest Compression
+                compState = 'IDLE';
+                btn.className = "w-full min-h-[72px] py-3 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-semibold shadow-md transition flex flex-col items-center justify-center border-2 border-rose-600";
+                document.getElementById('txtCompMain').innerHTML = `<i class="fa-solid fa-hand-holding-heart"></i> Start Chest Compression`;
+                document.getElementById('timeCompSub').innerText = "รอบ 2 นาที (02:00)";
+            }
+
+            updateSummaryMetrics();
+        }
+
+        function triggerCheckPulseState() {
+            compState = 'CHECK_PULSE';
+            const btn = document.getElementById('btnChestComp');
+            btn.className = "w-full min-h-[72px] py-3 px-3 rounded-xl font-bold shadow-lg transition flex flex-col items-center justify-center border-2 animate-flash-red cursor-pointer";
+            document.getElementById('txtCompMain').innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> CHECK PULSE!`;
+            document.getElementById('timeCompSub').innerText = "กดเมื่อทำการประเมินชีพจรแล้ว";
+
+            // Sound and speech every 5 seconds
+            speakText("Check pulse");
+            compAlarmInterval = setInterval(() => {
+                speakText("Check pulse");
+            }, 5000);
+        }
+
+        function clearCompAlarm() {
+            if (compAlarmInterval) {
+                clearInterval(compAlarmInterval);
+                compAlarmInterval = null;
+            }
+        }
+
+        function handleAdrenalineClick() {
+            if (adrState === 'IDLE') {
+                adrDoses = 1;
+                addTimelineEvent(`Start Adrenaline (Dose ที่ 1)`, 'drug');
+                startAdrCountdown();
+
+            } else if (adrState === 'RUNNING') {
+                // Regular dose during run
+                adrDoses++;
+                addTimelineEvent(`Inject Adrenaline (Dose ที่ ${adrDoses})`, 'drug');
+                clearInterval(adrTimer);
+                startAdrCountdown();
+
+            } else if (adrState === 'INJECT') {
+                clearAdrAlarm();
+                adrDoses++;
+                addTimelineEvent(`Inject Adrenaline (Dose ที่ ${adrDoses})`, 'drug');
+                startAdrCountdown();
+            }
+
+            updateSummaryMetrics();
+        }
+
+        function startAdrCountdown() {
+            adrState = 'RUNNING';
+            adrTimeRemaining = 180; // 3 mins
+            clearAdrAlarm();
+
+            const btn = document.getElementById('btnAdrenaline');
+            btn.className = "flex-grow min-h-[72px] py-3 px-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-semibold shadow-md transition flex flex-col items-center justify-center border-2 border-amber-600";
+
+            adrTimer = setInterval(() => {
+                adrTimeRemaining--;
+                const m = Math.floor(adrTimeRemaining / 60).toString().padStart(2, '0');
+                const s = (adrTimeRemaining % 60).toString().padStart(2, '0');
+                document.getElementById('txtAdrMain').innerHTML = `<i class="fa-solid fa-syringe"></i> Adrenaline (${m}:${s})`;
+                
+                if (adrTimeRemaining <= 0) {
+                    clearInterval(adrTimer);
+                    triggerInjectAdrState();
+                }
+            }, 1000);
+        }
+
+        function triggerInjectAdrState() {
+            adrState = 'INJECT';
+            const btn = document.getElementById('btnAdrenaline');
+            btn.className = "flex-grow min-h-[72px] py-3 px-3 rounded-xl font-bold shadow-lg transition flex flex-col items-center justify-center border-2 animate-flash-amber cursor-pointer";
+            document.getElementById('txtAdrMain').innerHTML = `<i class="fa-solid fa-bell"></i> INJECT ADRENALINE!`;
+            document.getElementById('timeAdrSub').innerText = "ครบเวลา 3 นาที - กดเพื่อฉีดยา";
+
+            speakText("Inject adrenaline");
+            adrAlarmInterval = setInterval(() => {
+                speakText("Inject adrenaline");
+            }, 5000);
+        }
+
+        function clearAdrAlarm() {
+            if (adrAlarmInterval) {
+                clearInterval(adrAlarmInterval);
+                adrAlarmInterval = null;
+            }
+        }
+
+        function resetAdrenalineTimer() {
+            if (adrTimer) clearInterval(adrTimer);
+            clearAdrAlarm();
+            adrState = 'IDLE';
+            const btn = document.getElementById('btnAdrenaline');
+            btn.className = "flex-grow min-h-[72px] py-3 px-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-semibold shadow-md transition flex flex-col items-center justify-center border-2 border-amber-600";
+            document.getElementById('txtAdrMain').innerHTML = `<i class="fa-solid fa-syringe"></i> Start Adrenaline`;
+            document.getElementById('timeAdrSub').innerText = "รอบ 3 นาที (03:00)";
+            addTimelineEvent("Reset Adrenaline Timer กลับค่าเริ่มต้น", "system");
+        }
+
+        function confirmDrug() {
+            const name = document.getElementById('medName').value.trim();
+            const dose = document.getElementById('medDose').value.trim();
+            const unit = document.getElementById('medUnit').value.trim();
+
+            if (!name || !dose || !unit) {
+                alert("กรุณากรอกข้อมูลยาให้ครบทั้ง 3 ช่องก่อนกด Confirm");
+                return;
+            }
+
+            const msg = `ให้ยา ${name} ปริมาณ ${dose} ${unit}`;
+            addTimelineEvent(msg, "drug");
+
+            document.getElementById('medName').value = "";
+            document.getElementById('medDose').value = "";
+            document.getElementById('medUnit').value = "";
+        }
+
+        function confirmFluid() {
+            const name = document.getElementById('fluidName').value.trim();
+            const vol = document.getElementById('fluidVol').value.trim();
+            const rate = document.getElementById('fluidRate').value.trim();
+
+            if (!name || !vol || !rate) {
+                alert("กรุณากรอกข้อมูลสารน้ำให้ครบทั้ง 3 ช่องก่อนกด Confirm");
+                return;
+            }
+
+            const msg = `ให้สารน้ำ ${name} ขนาด ${vol} Rate ${rate} cc/hr`;
+            addTimelineEvent(msg, "fluid");
+
+            document.getElementById('fluidName').value = "";
+            document.getElementById('fluidVol').value = "";
+            document.getElementById('fluidRate').value = "";
+        }
+
+        function confirmAirway() {
+            const type = document.getElementById('airwayType').value.trim();
+            const size = document.getElementById('airwaySize').value.trim();
+            const depth = document.getElementById('airwayDepth').value.trim();
+
+            let parts = [];
+            if (type) parts.push(`อุปกรณ์: ${type}`);
+            if (size) parts.push(`ขนาด: ${size}`);
+            if (depth) parts.push(`ความลึก: ${depth} cm`);
+
+            if (parts.length === 0) {
+                alert("กรุณากรอกข้อมูลอุปกรณ์ทางเดินหายใจอย่างน้อย 1 ช่อง");
+                return;
+            }
+
+            const msg = `ใส่ทางเดินหายใจ (${parts.join(", ")})`;
+            addTimelineEvent(msg, "airway");
+
+            document.getElementById('airwayType').value = "";
+            document.getElementById('airwaySize').value = "";
+            document.getElementById('airwayDepth').value = "";
+        }
+
+        function confirmEtCO2() {
+            const val = document.getElementById('etco2Val').value.trim();
+
+            if (!val) {
+                alert("กรุณากรอกค่า EtCO2 ก่อนกด Confirm");
+                return;
+            }
+
+            const msg = `End-tidal CO2 (EtCO2): ${val} mmHg`;
+            addTimelineEvent(msg, "etco2");
+
+            document.getElementById('etco2Val').value = "";
+        }
+
+        function renderReversibleCauses() {
+            const container = document.getElementById('reversibleCauseGrid');
+            container.innerHTML = "";
+
+            causesList.forEach((c, idx) => {
+                let btnColor = "bg-blue-600 text-white hover:bg-blue-700";
+                if (c.status === 'Pass') btnColor = "bg-emerald-600 text-white hover:bg-emerald-700";
+                if (c.status === 'N/A') btnColor = "bg-amber-500 text-white hover:bg-amber-600";
+                if (c.status === 'Problem') btnColor = "bg-rose-600 text-white hover:bg-rose-700";
+
+                const btn = document.createElement('button');
+                btn.className = `py-2 px-1.5 rounded-lg text-[11px] font-semibold transition truncate border border-black/10 shadow-sm flex flex-col items-center justify-center h-12 ${btnColor}`;
+                btn.title = `${c.label} (${c.status})`;
+                btn.onclick = () => handleCauseClick(idx);
+                btn.innerHTML = `<span>${c.label}</span><span class="text-[9px] opacity-80 font-normal">(${c.status === 'DEFAULT' ? 'กดประเมิน' : c.status})</span>`;
+                container.appendChild(btn);
+            });
+        }
+
+        function handleCauseClick(idx) {
+            selectedCauseIndex = idx;
+            const cause = causesList[idx];
+            document.getElementById('causeModalTitle').innerText = `ประเมิน: ${cause.label}`;
+            
+            if (cause.status === 'Problem') {
+                document.getElementById('causeProblemText').value = cause.text;
+                document.getElementById('causeProbTitle').innerText = `แก้ไขรายละเอียดปัญหา: ${cause.label}`;
+                document.getElementById('modalCauseProblem').classList.remove('hidden');
+            } else {
+                document.getElementById('modalCauseChoice').classList.remove('hidden');
+            }
+        }
+
+        function setCauseStatus(status) {
+            closeModal('modalCauseChoice');
+            const cause = causesList[selectedCauseIndex];
+            cause.status = status;
+            cause.text = "";
+
+            renderReversibleCauses();
+            addTimelineEvent(`ประเมิน Reversible Cause [${cause.label}]: Status = ${status}`, "cause");
+        }
+
+        function openCauseProblemInput() {
+            closeModal('modalCauseChoice');
+            const cause = causesList[selectedCauseIndex];
+            document.getElementById('causeProblemText').value = cause.text || "";
+            document.getElementById('causeProbTitle').innerText = `ระบุรายละเอียดปัญหา: ${cause.label}`;
+            document.getElementById('modalCauseProblem').classList.remove('hidden');
+        }
+
+        function confirmCauseProblem() {
+            const probText = document.getElementById('causeProblemText').value.trim();
+            closeModal('modalCauseProblem');
+
+            const cause = causesList[selectedCauseIndex];
+            cause.status = "Problem";
+            cause.text = probText;
+
+            renderReversibleCauses();
+            addTimelineEvent(`ประเมิน Reversible Cause [${cause.label}]: Problem - ${probText || 'ไม่ได้ระบุรายละเอียด'}`, "cause");
+        }
+
+        function setOutcome(result) {
+            addTimelineEvent(`ผลการ Resuscitation: ${result}`, result === 'ROSC' ? 'rosc' : 'dead');
+
+            if (compTimer) {
+                clearInterval(compTimer);
+                compTimer = null;
+            }
+            if (adrTimer) {
+                clearInterval(adrTimer);
+                adrTimer = null;
+            }
+            clearCompAlarm();
+            clearAdrAlarm();
+
+            if (isProgramRunning) {
+                toggleStartProgram();
+            } else {
+                updateSummaryMetrics();
+            }
+        }
+
+        function updateSummaryMetrics() {
+            let totalSecs = 0;
+            if (programStartTime) {
+                const end = programStopTime || new Date();
+                totalSecs = Math.max(1, Math.floor((end - programStartTime) / 1000));
+                document.getElementById('statTotalTime').innerText = formatDuration(totalSecs);
+            } else {
+                document.getElementById('statTotalTime').innerText = "00:00:00";
+            }
+
+            document.getElementById('statCycles').innerText = `${compCount} รอบ`;
+            document.getElementById('statAdrDoses').innerText = `${adrDoses} dose`;
+
+            let ccf = 0;
+            if (totalSecs > 0 && compTotalSeconds > 0) {
+                ccf = Math.min(100, Math.round((compTotalSeconds / totalSecs) * 100));
+            }
+            document.getElementById('statCcf').innerText = `${ccf}%`;
+        }
+
+        function addTimelineEvent(text, category = 'info') {
+            const timeStr = getRealTimeStr();
+            const timestamp = new Date();
+
+            let relMin = 0;
+            if (programStartTime) {
+                relMin = (timestamp - programStartTime) / 60000;
+            }
+
+            const item = {
+                id: Date.now(),
+                time: timeStr,
+                timestamp: timestamp,
+                text: text,
+                category: category,
+                relMin: relMin
+            };
+
+            timelineData.push(item);
+            renderTimeline();
+        }
+
+        function renderTimeline() {
+            const container = document.getElementById('timelineContainer');
+            const emptyHint = document.getElementById('timelineEmpty');
+            document.getElementById('timelineCount').innerText = `${timelineData.length} เหตุการณ์`;
+
+            if (timelineData.length > 0 && emptyHint) {
+                emptyHint.remove();
+            }
+
+            container.innerHTML = "";
+
+            timelineData.slice().reverse().forEach((item) => {
+                let badgeClass = "bg-slate-200 text-slate-700";
+                let iconClass = "fa-circle-info";
+
+                switch (item.category) {
+                    case 'system': badgeClass = "bg-slate-800 text-white"; iconClass = "fa-gear"; break;
+                    case 'comp': badgeClass = "bg-rose-100 text-rose-800 border-rose-300"; iconClass = "fa-hand-holding-heart"; break;
+                    case 'drug': badgeClass = "bg-amber-100 text-amber-900 border-amber-300"; iconClass = "fa-syringe"; break;
+                    case 'ekg': badgeClass = "bg-indigo-100 text-indigo-800 border-indigo-300"; iconClass = "fa-wave-square"; break;
+                    case 'shock': badgeClass = "bg-red-500 text-white animate-pulse"; iconClass = "fa-bolt"; break;
+                    case 'fluid': badgeClass = "bg-sky-100 text-sky-800 border-sky-300"; iconClass = "fa-bottle-droplet"; break;
+                    case 'airway': badgeClass = "bg-teal-100 text-teal-800 border-teal-300"; iconClass = "fa-lungs"; break;
+                    case 'etco2': badgeClass = "bg-cyan-100 text-cyan-800 border-cyan-300"; iconClass = "fa-gauge-high"; break;
+                    case 'cause': badgeClass = "bg-purple-100 text-purple-800 border-purple-300"; iconClass = "fa-clipboard-check"; break;
+                    case 'rosc': badgeClass = "bg-emerald-600 text-white font-bold"; iconClass = "fa-heart-circle-check"; break;
+                    case 'dead': badgeClass = "bg-slate-900 text-slate-200 font-bold"; iconClass = "fa-ribbon"; break;
+                }
+
+                const card = document.createElement('div');
+                card.className = "bg-white p-2.5 rounded-lg border border-slate-200 text-xs shadow-sm flex items-start justify-between gap-2 transition hover:border-slate-300";
+                card.innerHTML = `
+                    <div class="flex items-start gap-2">
+                        <span class="font-mono text-slate-500 font-bold text-[11px] pt-0.5">${item.time}</span>
+                        <span class="text-slate-800 font-medium">${item.text}</span>
+                    </div>
+                    <span class="px-2 py-0.5 rounded text-[10px] border flex items-center gap-1 shrink-0 ${badgeClass}">
+                        <i class="fa-solid ${iconClass}"></i>
+                    </span>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function saveRecord() {
+            if (isProgramRunning) {
+                alert("ไม่สามารถกดบันทึกได้! กรุณากด 'Stop Program' เพื่อยุติกระบวนการก่อนทำการบันทึกเอกสาร");
+                return;
+            }
+
+            isRecordSaved = true;
+            document.getElementById('saveHint').innerText = "บันทึกข้อมูลเรียบร้อยแล้ว พร้อมสำหรับพิมพ์เอกสาร หรือดู Action Summary";
+            document.getElementById('saveHint').className = "text-[11px] text-emerald-600 font-semibold text-center pt-1";
+
+            const btnPrint = document.getElementById('btnPrintPdf');
+            const btnSummary = document.getElementById('btnActionSummary');
+
+            btnPrint.disabled = false;
+            btnPrint.className = "py-2.5 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow transition flex items-center justify-center gap-1.5 cursor-pointer";
+
+            btnSummary.disabled = false;
+            btnSummary.className = "py-2.5 px-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold shadow transition flex items-center justify-center gap-1.5 cursor-pointer";
+
+            alert("บันทึกข้อมูลสำเร็จเรียบร้อย");
+        }
+
+        function printDoc() {
+            if (!isRecordSaved) {
+                alert("กรุณากดบันทึกข้อมูลก่อนทำรายการ");
+                return;
+            }
+
+            const ptName = document.getElementById('ptName').value || "-";
+            const ptAge = document.getElementById('ptAge').value || "-";
+            const ptHn = document.getElementById('ptHn').value || "-";
+            const ptDept = document.getElementById('ptDept').value || "-";
+            const ptRecorder = document.getElementById('ptRecorder').value || "-";
+            const arrestTime = document.getElementById('ptArrestTime').value || "-";
+            const witness = document.getElementById('ptWitness').value;
+            const bystander = document.getElementById('ptBystander').value;
+            const noFlow = document.getElementById('ptNoFlow').value || "0";
+            const desc = document.getElementById('ptEventDesc').value || "-";
+
+            document.getElementById('printPatientHeader').innerHTML = `
+                <div class="grid grid-cols-3 gap-2">
+                    <div><strong>ชื่อ-สกุล:</strong> ${ptName}</div>
+                    <div><strong>อายุ:</strong> ${ptAge} ปี</div>
+                    <div><strong>HN:</strong> ${ptHn}</div>
+                    <div><strong>แผนก:</strong> ${ptDept}</div>
+                    <div><strong>ผู้บันทึก:</strong> ${ptRecorder}</div>
+                    <div><strong>เวลาเกิด Arrest:</strong> ${arrestTime}</div>
+                    <div><strong>Witness:</strong> ${witness}</div>
+                    <div><strong>Bystander CPR:</strong> ${bystander}</div>
+                    <div><strong>No flow time:</strong> ${noFlow} นาที</div>
+                </div>
+                <div class="border-t pt-1 mt-1"><strong>เหตุการณ์:</strong> ${desc}</div>
+            `;
+
+            document.getElementById('printStats').innerHTML = `
+                <div><strong>ระยะเวลารวม:</strong> ${document.getElementById('statTotalTime').innerText}</div>
+                <div><strong>จำนวน Cycle:</strong> ${document.getElementById('statCycles').innerText}</div>
+                <div><strong>Adrenaline:</strong> ${document.getElementById('statAdrDoses').innerText}</div>
+                <div><strong>% CCF:</strong> ${document.getElementById('statCcf').innerText}</div>
+            `;
+
+            const tbody = document.getElementById('printTimelineTable');
+            tbody.innerHTML = "";
+            timelineData.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="border p-1.5 font-mono">${item.time}</td>
+                    <td class="border p-1.5">${item.text}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            const printableArea = document.getElementById('printable-area');
+            printableArea.classList.remove('hidden');
+            window.print();
+            printableArea.classList.add('hidden');
+        }
+
+        function showActionSummary() {
+            if (!isRecordSaved) {
+                alert("กรุณากดบันทึกข้อมูลก่อนทำรายการ");
+                return;
+            }
+
+            document.getElementById('modalSummaryGraph').classList.remove('hidden');
+            setTimeout(drawActionTimelineChart, 100);
+        }
+
+        function drawActionTimelineChart() {
+            const canvas = document.getElementById('timelineCanvas');
+            const ctx = canvas.getContext('2d');
+
+            canvas.width = 1000;
+            canvas.height = 520;
+            canvasPlotPoints = []; // Reset hit targets
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Canvas Background
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Chart Header Title
+            ctx.fillStyle = '#0f172a';
+            ctx.font = 'bold 16px Kanit, sans-serif';
+            ctx.fillText('RESUSCITATION MULTI-TRACK ACTION SUMMARY CHART', 25, 30);
+
+            // Calculate duration and relative minutes
+            const startT = programStartTime ? programStartTime.getTime() : (timelineData[0] ? timelineData[0].timestamp.getTime() : Date.now());
+            const endT = programStopTime ? programStopTime.getTime() : Date.now();
+            const totalSecs = Math.max(60, Math.ceil((endT - startT) / 1000));
+            const totalMins = Math.max(3, Math.ceil(totalSecs / 60));
+
+            const marginLeft = 220;
+            const marginRight = 40;
+            const marginTop = 60;
+            const marginBottom = 50;
+            const chartWidth = canvas.width - marginLeft - marginRight;
+
+            // Define Tracks Vertically
+            const tracks = [
+                { id: 'ekg', title: 'Track 1: EKG Rhythm', color: '#0284c7', y: 100 },
+                { id: 'interventions', title: 'Track 2: Interventions & Timers', color: '#10b981', y: 190 },
+                { id: 'medsAirway', title: 'Track 3: Meds, IV & Airway', color: '#0d9488', y: 280 },
+                { id: 'causes', title: 'Track 4: 5Hs & 5Ts Reversible Causes', color: '#9333ea', y: 370 }
+            ];
+
+            // Render Track Lines & Background Grid
+            tracks.forEach((tr) => {
+                // Track Label Side Box
+                ctx.fillStyle = '#f1f5f9';
+                ctx.beginPath();
+                ctx.roundRect(15, tr.y - 20, 190, 40, 6);
+                ctx.fill();
+
+                ctx.fillStyle = tr.color;
+                ctx.beginPath();
+                ctx.arc(28, tr.y, 5, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#1e293b';
+                ctx.font = 'bold 12px Kanit, sans-serif';
+                ctx.fillText(tr.title, 40, tr.y + 4);
+
+                // Horizontal Track Line
+                ctx.strokeStyle = '#cbd5e1';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(marginLeft, tr.y);
+                ctx.lineTo(marginLeft + chartWidth, tr.y);
+                ctx.stroke();
+            });
+
+            // Render X-Axis relative minute markers (0, 1, 2, 3...)
+            const axisY = 440;
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(marginLeft, axisY);
+            ctx.lineTo(marginLeft + chartWidth, axisY);
+            ctx.stroke();
+
+            ctx.fillStyle = '#334155';
+            ctx.font = 'bold 12px Kanit, sans-serif';
+            ctx.fillText('Relative Time (Minutes):', 25, axisY + 4);
+
+            for (let m = 0; m <= totalMins; m++) {
+                const x = marginLeft + (m / totalMins) * chartWidth;
+
+                // Vertical grid tick
+                ctx.strokeStyle = '#e2e8f0';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.moveTo(x, marginTop - 10);
+                ctx.lineTo(x, axisY);
+                ctx.stroke();
+                ctx.setLineDash([]); // Reset line dash
+
+                // Tick marker on axis
+                ctx.strokeStyle = '#475569';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x, axisY - 5);
+                ctx.lineTo(x, axisY + 5);
+                ctx.stroke();
+
+                // Minute label
+                ctx.fillStyle = '#0f172a';
+                ctx.font = 'bold 11px monospace';
+                ctx.fillText(`Min ${m}`, x - 15, axisY + 22);
+            }
+
+            if (timelineData.length === 0) {
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = '14px Kanit';
+                ctx.fillText('ไม่มีข้อมูลเหตุการณ์สำหรับแสดงผล', marginLeft + 150, 240);
+                return;
+            }
+
+            // Plot events onto corresponding tracks
+            timelineData.forEach((evt) => {
+                const evtMs = evt.timestamp.getTime();
+                const elapsedSec = Math.max(0, (evtMs - startT) / 1000);
+                const relMin = elapsedSec / 60;
+                const x = marginLeft + (relMin / totalMins) * chartWidth;
+
+                let trackY = tracks[1].y; // Default Interventions
+                let shape = 'circle';
+                let fillColor = '#0284c7';
+                let symbolType = evt.category;
+
+                // Map category to specific tracks and symbols
+                if (evt.category === 'ekg') {
+                    trackY = tracks[0].y; // Track 1
+                    shape = 'circle';
+                    fillColor = '#2563eb';
+                } else if (evt.category === 'shock') {
+                    trackY = tracks[1].y; // Track 2
+                    shape = 'diamond';
+                    fillColor = '#dc2626';
+                } else if (evt.category === 'comp') {
+                    trackY = tracks[1].y; // Track 2
+                    shape = 'square';
+                    fillColor = '#059669';
+                } else if (evt.category === 'drug' && evt.text.includes('Adrenaline')) {
+                    trackY = tracks[1].y; // Track 2
+                    shape = 'circle';
+                    fillColor = '#d97706';
+                } else if (evt.category === 'drug' || evt.category === 'fluid') {
+                    trackY = tracks[2].y; // Track 3
+                    shape = 'triangle-up';
+                    fillColor = '#0284c7';
+                } else if (evt.category === 'airway' || evt.category === 'etco2') {
+                    trackY = tracks[2].y; // Track 3
+                    shape = 'triangle-down';
+                    fillColor = '#0d9488';
+                } else if (evt.category === 'cause') {
+                    trackY = tracks[3].y; // Track 4
+                    shape = 'diamond';
+                    fillColor = '#9333ea';
+                } else if (evt.category === 'system' || evt.category === 'rosc' || evt.category === 'dead') {
+                    // System events draw small vertical line across tracks
+                    ctx.strokeStyle = evt.category === 'rosc' ? '#059669' : (evt.category === 'dead' ? '#1e293b' : '#64748b');
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(x, marginTop);
+                    ctx.lineTo(x, axisY);
+                    ctx.stroke();
+
+                    trackY = tracks[1].y;
+                    shape = 'circle';
+                    fillColor = evt.category === 'rosc' ? '#059669' : '#1e293b';
+                }
+
+                // Draw Symbol Shape
+                drawSymbol(ctx, x, trackY, shape, fillColor);
+
+                // Register interactive plot point target for tooltip mouseover
+                canvasPlotPoints.push({
+                    x: x,
+                    y: trackY,
+                    radius: 10,
+                    data: evt,
+                    relMinStr: `Minute ${relMin.toFixed(1)} (${evt.time})`
+                });
+            });
+        }
+
+        // Symbol Drawing Helper Functions
+        function drawSymbol(ctx, x, y, shape, fillColor) {
+            ctx.fillStyle = fillColor;
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+
+            ctx.beginPath();
+            if (shape === 'circle') {
+                ctx.arc(x, y, 7, 0, Math.PI * 2);
+            } else if (shape === 'square') {
+                ctx.rect(x - 6, y - 6, 12, 12);
+            } else if (shape === 'diamond') {
+                ctx.moveTo(x, y - 8);
+                ctx.lineTo(x + 8, y);
+                ctx.lineTo(x, y + 8);
+                ctx.lineTo(x - 8, y);
+                ctx.closePath();
+            } else if (shape === 'triangle-up') {
+                ctx.moveTo(x, y - 8);
+                ctx.lineTo(x + 7, y + 6);
+                ctx.lineTo(x - 7, y + 6);
+                ctx.closePath();
+            } else if (shape === 'triangle-down') {
+                ctx.moveTo(x - 7, y - 6);
+                ctx.lineTo(x + 7, y - 6);
+                ctx.lineTo(x, y + 8);
+                ctx.closePath();
+            }
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        // Interactive Tooltip Hover Engine for Canvas
+        function initCanvasHover() {
+            const canvas = document.getElementById('timelineCanvas');
+            const tooltip = document.getElementById('canvasTooltip');
+
+            canvas.addEventListener('mousemove', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+
+                const mouseX = (e.clientX - rect.left) * scaleX;
+                const mouseY = (e.clientY - rect.top) * scaleY;
+
+                let found = null;
+                for (let pt of canvasPlotPoints) {
+                    const dist = Math.hypot(pt.x - mouseX, pt.y - mouseY);
+                    if (dist <= pt.radius) {
+                        found = pt;
+                        break;
+                    }
+                }
+
+                if (found) {
+                    tooltip.innerHTML = `
+                        <div class="font-bold text-sky-300 border-b border-slate-700 pb-1 mb-1">${found.relMinStr}</div>
+                        <div class="text-white">${found.data.text}</div>
+                    `;
+                    tooltip.style.left = `${(e.clientX - rect.left) + 15}px`;
+                    tooltip.style.top = `${(e.clientY - rect.top) - 25}px`;
+                    tooltip.classList.remove('hidden');
+                } else {
+                    tooltip.classList.add('hidden');
+                }
+            });
+
+            canvas.addEventListener('mouseleave', () => {
+                tooltip.classList.add('hidden');
+            });
+        }
+
+        function printSummaryChart() {
+            window.print();
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        function confirmResetAll() {
+            if (confirm("คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลทั้งหมด? ข้อมูลที่บันทึกไว้จะถูกรีเซ็ตกลับเป็นค่าเริ่มต้น")) {
+                location.reload();
+            }
+        }
+    </script>
+</body>
+</html>
