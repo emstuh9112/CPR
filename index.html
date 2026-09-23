@@ -164,23 +164,66 @@
             }
 
             /* กรณีพิมพ์ Action Summary (แนวนอน) */
-            body.print-landscape #modalSummaryGraph, 
+            body.print-landscape #modalSummaryGraph,
             body.print-landscape #modalSummaryGraph * {
                 visibility: visible;
             }
             body.print-landscape #modalSummaryGraph {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                height: auto;
+                position: static !important;
+                inset: auto !important;
+                display: block !important;
+                width: 100% !important;
+                max-width: none !important;
+                height: auto !important;
+                max-height: none !important;
+                overflow: visible !important;
                 background: white !important;
-                padding: 0;
-                margin: 0;
-                box-shadow: none;
+                padding: 0 !important;
+                margin: 0 !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+            }
+            body.print-landscape #modalSummaryGraph > div {
+                width: 100% !important;
+                max-width: none !important;
+                height: auto !important;
+                overflow: visible !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
             }
             body.print-landscape #modalSummaryGraph .no-print {
                 display: none !important;
+            }
+            body.print-landscape #cprFormContent {
+                width: 100% !important;
+                max-width: none !important;
+                overflow: visible !important;
+            }
+            body.print-landscape #cprFormContent > * {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+            body.print-landscape #cprFormContent .cpr-table-container {
+                overflow: visible !important;
+                break-inside: auto;
+                page-break-inside: auto;
+            }
+            body.print-landscape #cprFormTable {
+                width: 100% !important;
+                min-width: 0 !important;
+                table-layout: fixed !important;
+            }
+            body.print-landscape #cprFormTable thead {
+                display: table-header-group;
+            }
+            body.print-landscape #cprFormTable tr {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+            body.print-landscape #cprFormContent textarea {
+                overflow: hidden !important;
             }
 
             @page portrait-page {
@@ -350,6 +393,10 @@
                                     <i class="fa-solid fa-hand-holding-heart"></i> Start Chest Compression
                                 </span>
                                 <span id="timeCompSub" class="text-xs font-mono opacity-90 mt-0.5">รอบ 2 นาที (02:00)</span>
+                            </button>
+                            <button id="btnMetronome" onclick="toggleMetronome()" title="เปิด/ปิดเสียง Metronome 120 BPM" class="absolute top-2 right-2 px-2.5 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-lg text-[11px] font-semibold border border-white/40 backdrop-blur-sm transition flex items-center gap-1.5">
+                                <i id="metronomeIcon" class="fa-solid fa-volume-high"></i>
+                                <span id="metronomeLabel">Metro ON</span>
                             </button>
                         </div>
 
@@ -893,6 +940,12 @@
         let compTotalSeconds = 0; // Accumulated compression seconds for CCF
         let compAlarmInterval = null;
 
+        // CPR Metronome: 120 BPM = 1 beat every 500 ms
+        let metronomeEnabled = true;
+        let metronomeTimer = null;
+        const METRONOME_BPM = 120;
+        const METRONOME_INTERVAL_MS = 60000 / METRONOME_BPM;
+
         let defibCount = 0; // Total Defibrillation Shocks
 
         let adrTimer = null;
@@ -933,6 +986,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             renderReversibleCauses();
             updateSummaryMetrics();
+            updateMetronomeButton();
         });
 
         // Format current date-time as HH:mm:ss
@@ -962,6 +1016,76 @@
                 osc.stop(ctx.currentTime + duration);
             } catch (e) {
                 console.log("Audio play suppressed or unsupported");
+            }
+        }
+
+        // CPR metronome click for chest compression: 120 BPM
+        function playMetronomeBeat() {
+            if (!metronomeEnabled) return;
+            try {
+                const ctx = getAudioContext();
+                if (ctx.state === 'suspended') ctx.resume();
+
+                const now = ctx.currentTime;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(1000, now);
+                gain.gain.setValueAtTime(0.0001, now);
+                gain.gain.exponentialRampToValueAtTime(0.22, now + 0.003);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.055);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.06);
+            } catch (e) {
+                console.log("Metronome audio suppressed or unsupported");
+            }
+        }
+
+        function startMetronome() {
+            stopMetronome();
+            if (!metronomeEnabled) return;
+
+            // First beat immediately, then exactly 120 BPM (one beat / 500 ms).
+            playMetronomeBeat();
+            metronomeTimer = setInterval(playMetronomeBeat, METRONOME_INTERVAL_MS);
+        }
+
+        function stopMetronome() {
+            if (metronomeTimer) {
+                clearInterval(metronomeTimer);
+                metronomeTimer = null;
+            }
+        }
+
+        function updateMetronomeButton() {
+            const btn = document.getElementById('btnMetronome');
+            const icon = document.getElementById('metronomeIcon');
+            const label = document.getElementById('metronomeLabel');
+            if (!btn || !icon || !label) return;
+
+            if (metronomeEnabled) {
+                icon.className = 'fa-solid fa-volume-high';
+                label.innerText = 'Metro ON';
+                btn.classList.remove('bg-slate-700/80');
+                btn.classList.add('bg-white/20');
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark';
+                label.innerText = 'Metro OFF';
+                btn.classList.remove('bg-white/20');
+                btn.classList.add('bg-slate-700/80');
+            }
+        }
+
+        function toggleMetronome() {
+            metronomeEnabled = !metronomeEnabled;
+            updateMetronomeButton();
+
+            if (metronomeEnabled && compState === 'RUNNING') {
+                startMetronome();
+            } else if (!metronomeEnabled) {
+                stopMetronome();
             }
         }
 
@@ -1070,6 +1194,7 @@
                 if (compState === 'RUNNING') {
                     // Early click before 2 minutes
                     clearInterval(compTimer);
+                    stopMetronome();
                     const runSeconds = 120 - compTimeRemaining;
                     compTotalSeconds += runSeconds;
                     addTimelineEvent(`Chest Compression หยุดก่อนครบเวลา (ปั๊มไป ${runSeconds} วินาที)`, 'comp');
@@ -1103,6 +1228,7 @@
             compState = 'RUNNING';
             compTimeRemaining = 120;
             clearCompAlarm();
+            startMetronome();
             btn.className = "w-full min-h-[72px] py-3 px-3 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-semibold shadow-md transition flex flex-col items-center justify-center border-2 border-sky-600";
             
             if (compTimer) clearInterval(compTimer);
@@ -1115,12 +1241,15 @@
                 
                 if (compTimeRemaining <= 0) {
                     clearInterval(compTimer);
+                    compTimer = null;
+                    stopMetronome();
                     triggerCheckPulseState();
                 }
             }, 1000);
         }
 
         function triggerCheckPulseState() {
+            stopMetronome();
             compState = 'CHECK_PULSE';
             const btn = document.getElementById('btnChestComp');
             btn.className = "w-full min-h-[72px] py-3 px-3 rounded-xl font-bold shadow-lg transition flex flex-col items-center justify-center border-2 animate-flash-red cursor-pointer";
@@ -1359,6 +1488,7 @@
                 clearInterval(compTimer);
                 compTimer = null;
             }
+            stopMetronome();
             if (adrTimer) {
                 clearInterval(adrTimer);
                 adrTimer = null;
@@ -1633,27 +1763,63 @@
         function addCanvasToPdf(pdf, canvas, orientation, marginMm = 8) {
             const pageWidth = orientation === 'portrait' ? 210 : 297;
             const pageHeight = orientation === 'portrait' ? 297 : 210;
-
             const usableWidth = pageWidth - (marginMm * 2);
             const usableHeight = pageHeight - (marginMm * 2);
-
-            const ratio = Math.min(
-                usableWidth / canvas.width,
-                usableHeight / canvas.height
-            );
-
+            const ratio = Math.min(usableWidth / canvas.width, usableHeight / canvas.height);
             const imgWidth = canvas.width * ratio;
             const imgHeight = canvas.height * ratio;
             const x = (pageWidth - imgWidth) / 2;
             const y = marginMm;
-
             pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', x, y, imgWidth, imgHeight, undefined, 'FAST');
+        }
+
+        // Add a tall canvas as multiple A4 pages without shrinking the whole report.
+        // This keeps the Action Summary readable and continues naturally onto page 3, 4, ...
+        function addTallCanvasToPdf(pdf, canvas, orientation, marginMm = 5) {
+            const pageWidth = orientation === 'portrait' ? 210 : 297;
+            const pageHeight = orientation === 'portrait' ? 297 : 210;
+            const usableWidth = pageWidth - (marginMm * 2);
+            const usableHeight = pageHeight - (marginMm * 2);
+
+            // Fit to page width only. The remaining height determines how much of the
+            // original canvas belongs on each PDF page.
+            const ratio = usableWidth / canvas.width;
+            const sliceHeightPx = Math.max(1, Math.floor(usableHeight / ratio));
+            let offsetY = 0;
+            let pageIndex = 0;
+
+            while (offsetY < canvas.height) {
+                const currentHeight = Math.min(sliceHeightPx, canvas.height - offsetY);
+                const sliceCanvas = document.createElement('canvas');
+                sliceCanvas.width = canvas.width;
+                sliceCanvas.height = currentHeight;
+                const ctx = sliceCanvas.getContext('2d');
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+                ctx.drawImage(
+                    canvas,
+                    0, offsetY, canvas.width, currentHeight,
+                    0, 0, sliceCanvas.width, currentHeight
+                );
+
+                const imgWidth = usableWidth;
+                const imgHeight = currentHeight * ratio;
+                const x = marginMm;
+                const y = marginMm;
+                if (pageIndex > 0) pdf.addPage('a4', orientation);
+                pdf.addImage(sliceCanvas.toDataURL('image/jpeg', 0.95), 'JPEG', x, y, imgWidth, imgHeight, undefined, 'FAST');
+
+                offsetY += currentHeight;
+                pageIndex++;
+            }
+
+            return pageIndex;
         }
 
         function makeSafeFileName(text) {
             return String(text || "Unknown Department")
                 .trim()
-                .replace(/[\\\\/:*?"<>|#%{}\\[\\]]+/g, "_")
+                .replace(/[\\/:*?"<>|#%{}\[\]]+/g, "_")
                 .replace(/\s+/g, " ")
                 .substring(0, 120);
         }
@@ -1667,21 +1833,20 @@
         }
 
         async function generateCombinedPdfBlob() {
-            // Page 1 = exactly the normal Print report (A4 portrait).
+            // Page 1 = normal Print report (A4 portrait).
             const printArea = document.getElementById('printable-area');
             const page1Canvas = await captureElementForPdf(printArea, {
                 width: '794px',
                 scale: 2
             });
 
-            // Page 2 = the same CPR Form used by Action Summary (A4 landscape).
-            // Populate first so the grid/timeline is current.
+            // Action Summary = A4 landscape, automatically continued to additional pages.
             populateCPRForm();
-            await new Promise(resolve => setTimeout(resolve, 250));
+            await new Promise(resolve => setTimeout(resolve, 300));
 
             const cprContent = document.getElementById('cprFormContent');
             const page2Width = Math.max(1200, cprContent.scrollWidth || 1200);
-            const page2Canvas = await captureElementForPdf(cprContent, {
+            const actionCanvas = await captureElementForPdf(cprContent, {
                 width: `${page2Width}px`,
                 scale: 2
             });
@@ -1694,10 +1859,12 @@
                 compress: true
             });
 
+            // Page 1 remains portrait.
             addCanvasToPdf(pdf, page1Canvas, 'portrait', 8);
 
+            // Page 2 onward = Action Summary landscape, split vertically as needed.
             pdf.addPage('a4', 'landscape');
-            addCanvasToPdf(pdf, page2Canvas, 'landscape', 5);
+            addTallCanvasToPdf(pdf, actionCanvas, 'landscape', 5);
 
             return pdf.output('blob');
         }
@@ -1767,10 +1934,30 @@
         }
 
         function printActionSummary() {
+            if (!isRecordSaved) {
+                alert("กรุณากดบันทึกข้อมูลก่อนทำรายการ");
+                return;
+            }
+
+            // Refresh all values before printing. Browser print will naturally paginate
+            // the tall form onto additional A4 landscape pages. The table header is
+            // configured as a repeating print header above.
+            populateCPRForm();
+
             document.body.classList.remove('print-portrait');
             document.body.classList.add('print-landscape');
-            window.print();
-            document.body.classList.remove('print-landscape');
+
+            const modal = document.getElementById('modalSummaryGraph');
+            const wasHidden = modal.classList.contains('hidden');
+            modal.classList.remove('hidden');
+
+            requestAnimationFrame(() => {
+                window.print();
+                setTimeout(() => {
+                    if (wasHidden) modal.classList.add('hidden');
+                    document.body.classList.remove('print-landscape');
+                }, 100);
+            });
         }
 
         // Action Summary Implementation using CPRform structure (ปรับขยาย 30 ช่อง = 60 นาที)
