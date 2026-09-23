@@ -6,6 +6,9 @@
     <title>ResusLog Pro: Advanced Cardiac Life Support Recorder</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PDF generation libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
@@ -866,6 +869,16 @@
     </div>
 
     <script>
+        // ============================================================
+        // ONLINE PDF / GOOGLE DRIVE CONFIGURATION
+        // 1) Deploy Google Apps Script as Web App
+        // 2) Put the /exec URL below
+        // ============================================================
+        const GOOGLE_DRIVE_CONFIG = {
+            APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbzey0uEUpQYvIlzpYGFzF2WaxmiHEt2udsFiALx-mvaU_NmeBdMVyVEAucAeVA79lMBLg/exec",
+            DRIVE_FOLDER_ID: "14HSbxNhjokVAGNBsSwCmKRbInUCtIIR_"
+        };
+
         // Global Application State
         let isProgramRunning = false;
         let programStartTime = null;
@@ -1447,34 +1460,76 @@
             });
         }
 
-        function saveRecord() {
+        async function saveRecord() {
             if (isProgramRunning) {
                 alert("ไม่สามารถกดบันทึกได้! กรุณากด 'Stop Program' เพื่อยุติกระบวนการก่อนทำการบันทึกเอกสาร");
                 return;
             }
 
-            isRecordSaved = true;
-            document.getElementById('saveHint').innerText = "บันทึกข้อมูลเรียบร้อยแล้ว พร้อมสำหรับพิมพ์เอกสาร หรือดู Action Summary";
-            document.getElementById('saveHint').className = "text-[11px] text-emerald-600 font-semibold text-center pt-1";
-
-            const btnPrint = document.getElementById('btnPrintPdf');
-            const btnSummary = document.getElementById('btnActionSummary');
-
-            btnPrint.disabled = false;
-            btnPrint.className = "py-2.5 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow transition flex items-center justify-center gap-1.5 cursor-pointer";
-
-            btnSummary.disabled = false;
-            btnSummary.className = "py-2.5 px-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold shadow transition flex items-center justify-center gap-1.5 cursor-pointer";
-
-            alert("บันทึกข้อมูลสำเร็จเรียบร้อย");
-        }
-
-        function printDoc() {
-            if (!isRecordSaved) {
-                alert("กรุณากดบันทึกข้อมูลก่อนทำรายการ");
+            if (!document.getElementById('ptDept').value.trim()) {
+                alert("กรุณากรอก แผนก / หอผู้ป่วย (Department) ก่อนบันทึกข้อมูล");
+                document.getElementById('ptDept').focus();
                 return;
             }
 
+            const btnSave = document.getElementById('btnSaveRecord');
+            const originalBtnHtml = btnSave.innerHTML;
+
+            try {
+                btnSave.disabled = true;
+                btnSave.className = "py-2.5 px-3 bg-slate-400 text-white rounded-lg text-xs font-semibold shadow transition flex items-center justify-center gap-1.5 cursor-wait";
+                btnSave.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังสร้าง PDF...';
+
+                // Make sure the two report views contain the latest data.
+                preparePrintableReport();
+                populateCPRForm();
+
+                // Wait for the CPR grid overlay/layout to finish rendering.
+                await new Promise(resolve => setTimeout(resolve, 250));
+
+                isRecordSaved = true;
+                document.getElementById('saveHint').innerText = "กำลังอัปโหลดรายงาน PDF ไปยัง Google Drive...";
+                document.getElementById('saveHint').className = "text-[11px] text-blue-600 font-semibold text-center pt-1";
+
+                const uploadResult = await generateAndUploadCombinedPdf();
+
+                document.getElementById('saveHint').innerText =
+                    "บันทึกข้อมูลและส่งไฟล์ PDF เข้า Google Drive เรียบร้อยแล้ว";
+                document.getElementById('saveHint').className =
+                    "text-[11px] text-emerald-600 font-semibold text-center pt-1";
+
+                const btnPrint = document.getElementById('btnPrintPdf');
+                const btnSummary = document.getElementById('btnActionSummary');
+
+                btnPrint.disabled = false;
+                btnPrint.className = "py-2.5 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow transition flex items-center justify-center gap-1.5 cursor-pointer";
+
+                btnSummary.disabled = false;
+                btnSummary.className = "py-2.5 px-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold shadow transition flex items-center justify-center gap-1.5 cursor-pointer";
+
+                alert(
+                    "บันทึกข้อมูลสำเร็จ\n\n" +
+                    "สร้างรายงาน PDF 2 หน้าและส่งเข้า Google Drive เรียบร้อยแล้ว" +
+                    (uploadResult && uploadResult.fileName ? "\nชื่อไฟล์: " + uploadResult.fileName : "")
+                );
+            } catch (error) {
+                console.error("Save / PDF upload error:", error);
+                isRecordSaved = false;
+                document.getElementById('saveHint').innerText =
+                    "สร้าง/ส่ง PDF ไม่สำเร็จ กรุณาตรวจสอบ Google Apps Script URL และลองใหม่";
+                document.getElementById('saveHint').className =
+                    "text-[11px] text-rose-600 font-semibold text-center pt-1";
+
+                alert("ไม่สามารถบันทึก PDF เข้า Google Drive ได้\n\n" + error.message);
+            } finally {
+                btnSave.disabled = false;
+                btnSave.className = "py-2.5 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow transition flex items-center justify-center gap-1.5";
+                btnSave.innerHTML = originalBtnHtml;
+            }
+        }
+
+        // Prepare the same content used by the normal Print button.
+        function preparePrintableReport() {
             const ptName = document.getElementById('ptName').value || "-";
             const ptAge = document.getElementById('ptAge').value || "-";
             const ptHn = document.getElementById('ptHn').value || "-";
@@ -1519,6 +1574,187 @@
                 `;
                 tbody.appendChild(tr);
             });
+        }
+
+        // Create a temporary visible clone so PDF capture does not disturb the UI.
+        async function captureElementForPdf(sourceElement, options = {}) {
+            const clone = sourceElement.cloneNode(true);
+            const temp = document.createElement('div');
+
+            temp.style.position = 'fixed';
+            temp.style.left = '-100000px';
+            temp.style.top = '0';
+            temp.style.zIndex = '-1';
+            temp.style.background = '#fff';
+            temp.style.visibility = 'visible';
+            temp.style.display = 'block';
+            temp.style.boxSizing = 'border-box';
+            temp.style.width = options.width || '794px';
+            temp.style.padding = options.padding || '0';
+            temp.style.overflow = 'visible';
+
+            clone.classList.remove('hidden');
+            clone.style.display = 'block';
+            clone.style.visibility = 'visible';
+            clone.style.position = 'relative';
+            clone.style.left = '0';
+            clone.style.top = '0';
+            clone.style.width = '100%';
+            clone.style.maxWidth = 'none';
+            clone.style.height = 'auto';
+            clone.style.maxHeight = 'none';
+            clone.style.overflow = 'visible';
+            clone.style.background = '#fff';
+            clone.style.margin = '0';
+
+            // Remove controls that are intentionally not printed.
+            clone.querySelectorAll('.no-print').forEach(el => el.remove());
+
+            temp.appendChild(clone);
+            document.body.appendChild(temp);
+
+            // html2canvas waits for fonts/images, but give the browser one extra layout frame.
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+            const canvas = await html2canvas(temp, {
+                scale: options.scale || 2,
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                logging: false,
+                width: temp.scrollWidth,
+                height: temp.scrollHeight,
+                windowWidth: Math.max(document.documentElement.clientWidth, temp.scrollWidth)
+            });
+
+            temp.remove();
+            return canvas;
+        }
+
+        function addCanvasToPdf(pdf, canvas, orientation, marginMm = 8) {
+            const pageWidth = orientation === 'portrait' ? 210 : 297;
+            const pageHeight = orientation === 'portrait' ? 297 : 210;
+
+            const usableWidth = pageWidth - (marginMm * 2);
+            const usableHeight = pageHeight - (marginMm * 2);
+
+            const ratio = Math.min(
+                usableWidth / canvas.width,
+                usableHeight / canvas.height
+            );
+
+            const imgWidth = canvas.width * ratio;
+            const imgHeight = canvas.height * ratio;
+            const x = (pageWidth - imgWidth) / 2;
+            const y = marginMm;
+
+            pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', x, y, imgWidth, imgHeight, undefined, 'FAST');
+        }
+
+        function makeSafeFileName(text) {
+            return String(text || "Unknown Department")
+                .trim()
+                .replace(/[\\\\/:*?"<>|#%{}\\[\\]]+/g, "_")
+                .replace(/\s+/g, " ")
+                .substring(0, 120);
+        }
+
+        function getSaveDateString() {
+            const d = new Date();
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        }
+
+        async function generateCombinedPdfBlob() {
+            // Page 1 = exactly the normal Print report (A4 portrait).
+            const printArea = document.getElementById('printable-area');
+            const page1Canvas = await captureElementForPdf(printArea, {
+                width: '794px',
+                scale: 2
+            });
+
+            // Page 2 = the same CPR Form used by Action Summary (A4 landscape).
+            // Populate first so the grid/timeline is current.
+            populateCPRForm();
+            await new Promise(resolve => setTimeout(resolve, 250));
+
+            const cprContent = document.getElementById('cprFormContent');
+            const page2Width = Math.max(1200, cprContent.scrollWidth || 1200);
+            const page2Canvas = await captureElementForPdf(cprContent, {
+                width: `${page2Width}px`,
+                scale: 2
+            });
+
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4',
+                compress: true
+            });
+
+            addCanvasToPdf(pdf, page1Canvas, 'portrait', 8);
+
+            pdf.addPage('a4', 'landscape');
+            addCanvasToPdf(pdf, page2Canvas, 'landscape', 5);
+
+            return pdf.output('blob');
+        }
+
+        async function generateAndUploadCombinedPdf() {
+            if (!GOOGLE_DRIVE_CONFIG.APPS_SCRIPT_URL ||
+                GOOGLE_DRIVE_CONFIG.APPS_SCRIPT_URL.includes('PASTE_YOUR_')) {
+                throw new Error(
+                    "ยังไม่ได้ใส่ Google Apps Script Web App URL ใน GOOGLE_DRIVE_CONFIG.APPS_SCRIPT_URL"
+                );
+            }
+
+            const pdfBlob = await generateCombinedPdfBlob();
+            const arrayBuffer = await pdfBlob.arrayBuffer();
+
+            // Convert PDF bytes to base64 without exceeding the call stack.
+            let binary = '';
+            const bytes = new Uint8Array(arrayBuffer);
+            const chunkSize = 0x8000;
+            for (let i = 0; i < bytes.length; i += chunkSize) {
+                binary += String.fromCharCode(...bytes.subarray(i, Math.min(i + chunkSize, bytes.length)));
+            }
+            const base64Pdf = btoa(binary);
+
+            const department = makeSafeFileName(document.getElementById('ptDept').value);
+            const dateStr = getSaveDateString();
+            const fileName = `${department}_${dateStr}.pdf`;
+
+            const payload = {
+                fileName,
+                mimeType: "application/pdf",
+                base64: base64Pdf,
+                folderId: GOOGLE_DRIVE_CONFIG.DRIVE_FOLDER_ID
+            };
+
+            // text/plain avoids a CORS preflight for a Google Apps Script Web App.
+            const response = await fetch(GOOGLE_DRIVE_CONFIG.APPS_SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: {
+                    'Content-Type': 'text/plain;charset=utf-8'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            // no-cors intentionally gives an opaque response. The Apps Script endpoint
+            // performs the Drive save; reaching this point means the browser sent the request.
+            return { ok: true, fileName, responseType: response.type };
+        }
+
+        function printDoc() {
+            if (!isRecordSaved) {
+                alert("กรุณากดบันทึกข้อมูลก่อนทำรายการ");
+                return;
+            }
+
+            preparePrintableReport();
 
             document.body.classList.remove('print-landscape');
             document.body.classList.add('print-portrait');
