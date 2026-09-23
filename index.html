@@ -163,12 +163,19 @@
                 width: 100%;
             }
 
-            /* กรณีพิมพ์ Action Summary (แนวนอน) */
+            /* กรณีพิมพ์ Action Summary (แนวนอน)
+               สำคัญ: ซ่อนองค์ประกอบระดับ body ตัวอื่นด้วย display:none
+               เพื่อไม่ให้ layout ของหน้า application เดิมกินพื้นที่และสร้าง
+               หน้าเปล่าก่อนรายงาน */
+            body.print-landscape > * {
+                display: none !important;
+            }
             body.print-landscape #modalSummaryGraph,
             body.print-landscape #modalSummaryGraph * {
                 visibility: visible;
             }
             body.print-landscape #modalSummaryGraph {
+                display: block !important;
                 position: static !important;
                 inset: auto !important;
                 display: block !important;
@@ -204,6 +211,23 @@
             body.print-landscape #cprFormContent > * {
                 break-inside: avoid;
                 page-break-inside: avoid;
+            }
+
+            /* ให้ browser แบ่งหน้าตาม section อย่างเป็นธรรมชาติ
+               และไม่สร้างหน้าว่างจาก flex/grid ของหน้าจอ */
+            body.print-landscape #cprFormContent {
+                display: block !important;
+            }
+            body.print-landscape #cprFormContent > .cpr-table-container {
+                break-inside: auto;
+                page-break-inside: auto;
+            }
+            body.print-landscape #cprFormContent .cpr-table-container + * {
+                break-before: auto;
+                page-break-before: auto;
+            }
+            body.print-landscape #cprFormTable thead {
+                display: table-header-group !important;
             }
             body.print-landscape #cprFormContent .cpr-table-container {
                 overflow: visible !important;
@@ -1845,9 +1869,12 @@
             await new Promise(resolve => setTimeout(resolve, 300));
 
             const cprContent = document.getElementById('cprFormContent');
-            const page2Width = Math.max(1200, cprContent.scrollWidth || 1200);
+            // A4 landscape printable width at 96 CSS px/in, with 5 mm margins.
+            // Use a fixed width instead of the live viewport width so the PDF and
+            // browser Print preview use the same geometry.
+            const A4_LANDSCAPE_CSS_WIDTH = 1085;
             const actionCanvas = await captureElementForPdf(cprContent, {
-                width: `${page2Width}px`,
+                width: `${A4_LANDSCAPE_CSS_WIDTH}px`,
                 scale: 2
             });
 
