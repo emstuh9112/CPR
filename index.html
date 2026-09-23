@@ -383,6 +383,10 @@
                                 </span>
                                 <span id="timeCompSub" class="text-xs font-mono opacity-90 mt-0.5">รอบ 2 นาที (02:00)</span>
                             </button>
+                            <button id="btnMetronome" onclick="toggleMetronome()" title="เปิด/ปิดเสียง Metronome 120 BPM" class="absolute top-2 right-2 px-2.5 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-lg text-[11px] font-semibold border border-white/40 backdrop-blur-sm transition flex items-center gap-1.5">
+                                <i id="metronomeIcon" class="fa-solid fa-volume-high"></i>
+                                <span id="metronomeLabel">Metro ON</span>
+                            </button>
                         </div>
 
                         <!-- Adrenaline Button with Reset side button -->
@@ -925,6 +929,12 @@
         let compTotalSeconds = 0; // Accumulated compression seconds for CCF
         let compAlarmInterval = null;
 
+        // CPR Metronome: 120 BPM = 1 beat every 500 ms
+        let metronomeEnabled = true;
+        let metronomeTimer = null;
+        const METRONOME_BPM = 120;
+        const METRONOME_INTERVAL_MS = 60000 / METRONOME_BPM;
+
         let defibCount = 0; // Total Defibrillation Shocks
 
         let adrTimer = null;
@@ -994,6 +1004,71 @@
                 osc.stop(ctx.currentTime + duration);
             } catch (e) {
                 console.log("Audio play suppressed or unsupported");
+            }
+        }
+
+        // CPR metronome click: 120 BPM (one beat every 500 ms)
+        function playMetronomeBeat() {
+            if (!metronomeEnabled) return;
+            try {
+                const ctx = getAudioContext();
+                if (ctx.state === 'suspended') ctx.resume();
+                const now = ctx.currentTime;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(1000, now);
+                gain.gain.setValueAtTime(0.0001, now);
+                gain.gain.exponentialRampToValueAtTime(0.22, now + 0.003);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.055);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.06);
+            } catch (e) {
+                console.log("Metronome audio suppressed or unsupported");
+            }
+        }
+
+        function startMetronome() {
+            stopMetronome();
+            if (!metronomeEnabled) return;
+            playMetronomeBeat();
+            metronomeTimer = setInterval(playMetronomeBeat, METRONOME_INTERVAL_MS);
+        }
+
+        function stopMetronome() {
+            if (metronomeTimer) {
+                clearInterval(metronomeTimer);
+                metronomeTimer = null;
+            }
+        }
+
+        function updateMetronomeButton() {
+            const btn = document.getElementById('btnMetronome');
+            const icon = document.getElementById('metronomeIcon');
+            const label = document.getElementById('metronomeLabel');
+            if (!btn || !icon || !label) return;
+            if (metronomeEnabled) {
+                icon.className = 'fa-solid fa-volume-high';
+                label.innerText = 'Metro ON';
+                btn.classList.remove('bg-slate-700/80');
+                btn.classList.add('bg-white/20');
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark';
+                label.innerText = 'Metro OFF';
+                btn.classList.remove('bg-white/20');
+                btn.classList.add('bg-slate-700/80');
+            }
+        }
+
+        function toggleMetronome() {
+            metronomeEnabled = !metronomeEnabled;
+            updateMetronomeButton();
+            if (metronomeEnabled && compState === 'RUNNING') {
+                startMetronome();
+            } else if (!metronomeEnabled) {
+                stopMetronome();
             }
         }
 
@@ -1102,6 +1177,7 @@
                 if (compState === 'RUNNING') {
                     // Early click before 2 minutes
                     clearInterval(compTimer);
+                    stopMetronome();
                     const runSeconds = 120 - compTimeRemaining;
                     compTotalSeconds += runSeconds;
                     addTimelineEvent(`Chest Compression หยุดก่อนครบเวลา (ปั๊มไป ${runSeconds} วินาที)`, 'comp');
@@ -1135,6 +1211,7 @@
             compState = 'RUNNING';
             compTimeRemaining = 120;
             clearCompAlarm();
+            startMetronome();
             btn.className = "w-full min-h-[72px] py-3 px-3 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-semibold shadow-md transition flex flex-col items-center justify-center border-2 border-sky-600";
             
             if (compTimer) clearInterval(compTimer);
@@ -1153,6 +1230,7 @@
         }
 
         function triggerCheckPulseState() {
+            stopMetronome();
             compState = 'CHECK_PULSE';
             const btn = document.getElementById('btnChestComp');
             btn.className = "w-full min-h-[72px] py-3 px-3 rounded-xl font-bold shadow-lg transition flex flex-col items-center justify-center border-2 animate-flash-red cursor-pointer";
@@ -1389,6 +1467,7 @@
 
             if (compTimer) {
                 clearInterval(compTimer);
+            stopMetronome();
                 compTimer = null;
             }
             if (adrTimer) {
