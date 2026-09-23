@@ -88,7 +88,8 @@
             border: 1px solid #000 !important;
             padding: 2px 1px;
             text-align: center;
-            height: 22px;
+            height: auto;
+            min-height: 22px;
             vertical-align: middle;
             font-size: 10px;
             position: relative;
@@ -108,8 +109,11 @@
             font-weight: 600;
             white-space: normal;
             word-break: break-word;
-            line-height: 1.1;
+            line-height: 1.15;
             font-size: 9.5px;
+            height: auto !important;
+            min-height: 22px;
+            overflow: visible !important;
         }
         .cpr-table th input[type="text"],
         .cpr-table td input[type="text"] {
@@ -143,6 +147,42 @@
             padding: 0;
             white-space: nowrap;
             z-index: 10;
+        }
+
+        /* PDF capture view: match the A4 landscape print geometry and allow
+           long left-side labels to expand instead of being clipped by a fixed row. */
+        .pdf-action-summary {
+            width: 1085px !important;
+            max-width: 1085px !important;
+            overflow: visible !important;
+        }
+        .pdf-action-summary .cpr-table-container {
+            overflow: visible !important;
+            height: auto !important;
+        }
+        .pdf-action-summary .cpr-table {
+            width: 100% !important;
+            min-width: 0 !important;
+            table-layout: fixed !important;
+        }
+        .pdf-action-summary .cpr-table tr {
+            height: auto !important;
+            min-height: 22px;
+        }
+        .pdf-action-summary .cpr-table th,
+        .pdf-action-summary .cpr-table td {
+            height: auto !important;
+            min-height: 22px;
+            overflow: visible !important;
+        }
+        .pdf-action-summary .cpr-table .col-label {
+            white-space: normal !important;
+            word-break: break-word !important;
+            overflow-wrap: anywhere !important;
+            height: auto !important;
+            min-height: 22px;
+            line-height: 1.15 !important;
+            overflow: visible !important;
         }
 
         /* Printable view CSS setup */
@@ -1748,6 +1788,7 @@
             temp.style.overflow = 'visible';
 
             clone.classList.remove('hidden');
+            if (options.actionSummary) clone.classList.add('pdf-action-summary');
             clone.style.display = 'block';
             clone.style.visibility = 'visible';
             clone.style.position = 'relative';
@@ -1875,7 +1916,8 @@
             const A4_LANDSCAPE_CSS_WIDTH = 1085;
             const actionCanvas = await captureElementForPdf(cprContent, {
                 width: `${A4_LANDSCAPE_CSS_WIDTH}px`,
-                scale: 2
+                scale: 2,
+                actionSummary: true
             });
 
             const { jsPDF } = window.jspdf;
@@ -2193,15 +2235,19 @@
                     const rowElem = document.getElementById(ov.rowId);
                     if (!rowElem || rowElem.style.display === 'none') return;
 
-                    const rowTop = rowElem.offsetTop;
-                    const rowHeight = rowElem.offsetHeight;
+                    // Use real geometry relative to the overlay container.
+                    // offsetTop on table rows can resolve to the table/header origin
+                    // when the DOM is cloned for html2canvas, which places overlay
+                    // values in the time-header row of the Drive PDF.
+                    const overlayRect = gridOverlayContainer.getBoundingClientRect();
+                    const rowRect = rowElem.getBoundingClientRect();
+                    const rowCenterY = (rowRect.top - overlayRect.top) + (rowRect.height / 2);
 
-                    // Calculate percentage X position across 30 columns
                     const colPct = (ov.colPos / NUM_COLS) * 100;
 
                     const div = document.createElement('div');
                     div.className = 'grid-overlay-item';
-                    div.style.top = `${rowTop + (rowHeight / 2)}px`;
+                    div.style.top = `${rowCenterY}px`;
                     div.style.left = `${colPct}%`;
                     div.innerText = ov.text;
                     gridOverlayContainer.appendChild(div);
