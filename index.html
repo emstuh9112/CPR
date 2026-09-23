@@ -197,7 +197,6 @@
             }
         }
     </style>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body class="bg-slate-100 font-sans text-slate-800 min-h-screen flex flex-col justify-between selection:bg-sky-500 selection:text-white">
 
@@ -867,9 +866,6 @@
     </div>
 
     <script>
-    // 1. นำ Web App URL ที่ได้จาก Google Apps Script มาวางตรงนี้
-    const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxfjyR3rI0NuucB_dAQ2taTxFnNA2236bZh5geob4qUQiLrUnHulV8DoZs_Af_mlPLdhw/exec";
-
         // Global Application State
         let isProgramRunning = false;
         let programStartTime = null;
@@ -1451,121 +1447,27 @@
             });
         }
 
-       async function saveRecord() {
-    if (isProgramRunning) {
-        alert("ไม่สามารถบันทึกได้! กรุณากด 'Stop Program' เพื่อยุติกระบวนการก่อนทำการบันทึกเอกสาร");
-        return;
-    }
-
-    const dept = document.getElementById('ptDept')?.value.trim() || 'Unspecified_Dept';
-    const dateStr = new Date().toISOString().split('T')[0]; // รูปแบบ YYYY-MM-DD
-    const fileName = `${dateStr}_${dept.replace(/[\/\s]/g, '_')}.pdf`;
-
-    // แสดงสถานะกำลังบันทึกที่ปุ่ม
-    const btnSave = document.getElementById('btnSaveRecord');
-    const originalText = btnSave ? btnSave.innerHTML : '';
-    if (btnSave) {
-        btnSave.disabled = true;
-        btnSave.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึก & สร้าง PDF...`;
-    }
-
-    try {
-        // เตรียมข้อมูลก่อนพิมพ์เอกสาร
-        if (typeof preparePrintableData === 'function') {
-            preparePrintableData();
-        }
-        
-        // สร้าง Wrapper ชั่วคราวสำหรับรวมเอกสารทั้ง 2 หน้าเข้าด้วยกัน
-        const wrapper = document.createElement('div');
-        wrapper.id = 'pdfExportWrapper';
-        wrapper.style.padding = '10px';
-        wrapper.style.background = '#ffffff';
-
-        // 1. ดึง DOM หน้าพิมพ์เอกสาร (A4 Vertical)
-        const printAreaElement = document.getElementById('printable-area');
-        if (printAreaElement) {
-            const printArea = printAreaElement.cloneNode(true);
-            printArea.classList.remove('hidden');
-            wrapper.appendChild(printArea);
-        }
-        
-        // 2. ดึง DOM หน้า Action Summary (CPR Form Content)
-        const cprFormElement = document.getElementById('cprFormContent');
-        if (cprFormElement) {
-            const pageBreak = document.createElement('div');
-            pageBreak.style.pageBreakBefore = 'always';
-            wrapper.appendChild(pageBreak);
-
-            const cprForm = cprFormElement.cloneNode(true);
-            wrapper.appendChild(cprForm);
-        }
-
-        document.body.appendChild(wrapper);
-
-        // ตั้งค่าการแปลง HTML เป็น PDF
-        const opt = {
-            margin:       [10, 10, 10, 10],
-            filename:     fileName,
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true },
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-
-        // แปลงเป็น Base64 Data URL
-        const pdfBase64 = await html2pdf().set(opt).from(wrapper).outputPdf('datauristring');
-
-        // ลบ Wrapper ชั่วคราวออกจากหน้าเว็บ
-        document.body.removeChild(wrapper);
-
-        // ส่งไฟล์ Base64 ไปยัง Google Drive ผ่าน Google Apps Script Web App API
-        const response = await fetch(GOOGLE_WEB_APP_URL, {
-            method: 'POST',
-            mode: 'cors',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify({
-                fileName: fileName,
-                fileData: pdfBase64
-            })
-        });
-
-        const result = await response.json();
-
-        if (result.status === 'success') {
-            alert(`บันทึกข้อมูลและส่งไฟล์ PDF เข้า Google Drive สำเร็จ!\nชื่อไฟล์: ${fileName}`);
-            
-            isRecordSaved = true;
-            
-            const saveHint = document.getElementById('saveHint');
-            if (saveHint) {
-                saveHint.innerText = "บันทึกข้อมูลเรียบร้อยแล้ว พร้อมสำหรับพิมพ์เอกสาร หรือดู Action Summary";
-                saveHint.className = "text-[11px] text-emerald-600 font-semibold text-center pt-1";
+        function saveRecord() {
+            if (isProgramRunning) {
+                alert("ไม่สามารถกดบันทึกได้! กรุณากด 'Stop Program' เพื่อยุติกระบวนการก่อนทำการบันทึกเอกสาร");
+                return;
             }
+
+            isRecordSaved = true;
+            document.getElementById('saveHint').innerText = "บันทึกข้อมูลเรียบร้อยแล้ว พร้อมสำหรับพิมพ์เอกสาร หรือดู Action Summary";
+            document.getElementById('saveHint').className = "text-[11px] text-emerald-600 font-semibold text-center pt-1";
 
             const btnPrint = document.getElementById('btnPrintPdf');
-            if (btnPrint) {
-                btnPrint.disabled = false;
-                btnPrint.className = "py-2.5 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow transition flex items-center justify-center gap-1.5 cursor-pointer";
-            }
-
             const btnSummary = document.getElementById('btnActionSummary');
-            if (btnSummary) {
-                btnSummary.disabled = false;
-                btnSummary.className = "py-2.5 px-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold shadow transition flex items-center justify-center gap-1.5 cursor-pointer";
-            }
-        } else {
-            alert(`เกิดข้อผิดพลาดในการบันทึกไฟล์: ${result.message}`);
-        }
 
-    } catch (err) {
-        console.error(err);
-        alert("เกิดข้อผิดพลาดระหว่างกระบวนการสร้างและส่ง PDF เข้า Google Drive");
-    } finally {
-        if (btnSave) {
-            btnSave.disabled = false;
-            btnSave.innerHTML = originalText;
+            btnPrint.disabled = false;
+            btnPrint.className = "py-2.5 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow transition flex items-center justify-center gap-1.5 cursor-pointer";
+
+            btnSummary.disabled = false;
+            btnSummary.className = "py-2.5 px-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold shadow transition flex items-center justify-center gap-1.5 cursor-pointer";
+
+            alert("บันทึกข้อมูลสำเร็จเรียบร้อย");
         }
-    }
-}
 
         function printDoc() {
             if (!isRecordSaved) {
