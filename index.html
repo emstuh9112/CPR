@@ -8,14 +8,15 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Font Inter / Kanit for Thai -->
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: {
                         sans: ['Kanit', 'Inter', 'sans-serif'],
+                        sarabun: ['Sarabun', 'sans-serif']
                     },
                     colors: {
                         brand: {
@@ -63,41 +64,140 @@
         .timeline-scroll::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
+
+        /* Style จาก CPRform.html - ปรับแต่งรองรับแนวนอน 60 นาที */
+        .cpr-form-style {
+            font-family: 'Sarabun', sans-serif;
+            color: #000;
+        }
+        .cpr-table-container {
+            margin-bottom: 8px;
+            overflow-x: auto;
+            position: relative;
+        }
+        .cpr-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            border: 1px solid #000;
+        }
+        .cpr-table th, .cpr-table td {
+            border: 1px solid #000 !important;
+            padding: 2px 1px;
+            text-align: center;
+            height: 22px;
+            vertical-align: middle;
+            font-size: 10px;
+            position: relative;
+            box-sizing: border-box;
+        }
+        .cpr-table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            font-size: 10px;
+        }
+        /* ปรับ col-label ให้แสดงผลข้อความยาวๆ เป็น 2 บรรทัดได้ */
+        .cpr-table .col-label {
+            width: 160px;
+            text-align: left;
+            padding-left: 4px;
+            padding-right: 2px;
+            font-weight: 600;
+            white-space: normal;
+            word-break: break-word;
+            line-height: 1.1;
+            font-size: 9.5px;
+        }
+        .cpr-table th input[type="text"],
+        .cpr-table td input[type="text"] {
+            width: 100%;
+            height: 100%;
+            border: none !important;
+            outline: none !important;
+            text-align: center;
+            background: transparent !important;
+            font-size: 10px;
+            padding: 0;
+            margin: 0;
+            box-shadow: none !important;
+        }
+        /* overlay สำหรับแสดงข้อมูลตรงเส้นคอลัมน์ */
+        .grid-overlay-container {
+            position: absolute;
+            top: 0;
+            left: 160px; /* ตรงกับความกว้าง col-label */
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+        }
+        .grid-overlay-item {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            font-weight: bold;
+            font-size: 10px;
+            color: #000;
+            background-color: transparent;
+            padding: 0;
+            white-space: nowrap;
+            z-index: 10;
+        }
+
         /* Printable view CSS setup */
         @media print {
             body * {
                 visibility: hidden;
             }
-            #printable-area, #printable-area * {
+            
+            /* กรณีพิมพ์เอกสารธรรมดา (แนวตั้ง) */
+            body.print-portrait #printable-area, 
+            body.print-portrait #printable-area * {
                 visibility: visible;
             }
-            #printable-area {
+            body.print-portrait #printable-area {
                 position: absolute;
                 left: 0;
                 top: 0;
                 width: 100%;
-                background: white !important;
-                color: black !important;
-                padding: 15px;
             }
-            .no-print {
+
+            /* กรณีพิมพ์ Action Summary (แนวนอน) */
+            body.print-landscape #modalSummaryGraph, 
+            body.print-landscape #modalSummaryGraph * {
+                visibility: visible;
+            }
+            body.print-landscape #modalSummaryGraph {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: auto;
+                background: white !important;
+                padding: 0;
+                margin: 0;
+                box-shadow: none;
+            }
+            body.print-landscape #modalSummaryGraph .no-print {
                 display: none !important;
             }
-            @page {
+
+            @page portrait-page {
                 size: A4 portrait;
                 margin: 1cm;
             }
-            .page-break {
-                page-break-before: always;
-            }
-        }
-        @media print and (orientation: landscape) {
-            @page {
+            @page landscape-page {
                 size: A4 landscape;
-                margin: 1cm;
+                margin: 0.5cm;
+            }
+
+            body.print-portrait {
+                page: portrait-page;
+            }
+            body.print-landscape {
+                page: landscape-page;
             }
         }
     </style>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body class="bg-slate-100 font-sans text-slate-800 min-h-screen flex flex-col justify-between selection:bg-sky-500 selection:text-white">
 
@@ -128,7 +228,7 @@
     <!-- Main Content Grid Layout -->
     <main class="max-w-7xl mx-auto w-full px-3 sm:px-4 py-4 space-y-4 flex-grow">
 
-        <!-- Section 2: Patient & Arrest Information -->
+        <!-- Section 1: Patient & Arrest Information -->
         <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 transition-all">
             <div class="flex items-center justify-between border-b border-slate-100 pb-2 mb-3">
                 <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
@@ -206,7 +306,7 @@
             <!-- Left Panel: Resuscitation Timers and Actions -->
             <div class="lg:col-span-7 space-y-4">
                 
-                <!-- Section 3: Main Controls (Start/Stop + EKG) -->
+                <!-- Section 2: Main Controls (Start/Stop + EKG) -->
                 <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
                     <div class="flex items-center justify-between border-b border-slate-100 pb-2 mb-3">
                         <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
@@ -233,7 +333,7 @@
                     </div>
                 </section>
 
-                <!-- Section 4: Timers (Chest Compression & Adrenaline) -->
+                <!-- Section 3: Timers (Chest Compression & Adrenaline) -->
                 <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-3">
                     <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2">
                         <i class="fa-solid fa-stopwatch text-rose-600"></i>
@@ -267,7 +367,7 @@
                     </div>
                 </section>
 
-                <!-- Section 5: Medication, IV, Airway & 5H5T Causes -->
+                <!-- Section 4: Medication, IV, Airway & 5H5T Causes -->
                 <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-4">
                     <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2">
                         <i class="fa-solid fa-pills text-sky-600"></i>
@@ -388,12 +488,12 @@
                         </span>
                         
                         <div class="grid grid-cols-2 sm:grid-cols-5 gap-1.5" id="reversibleCauseGrid">
-                            <!-- 10 Buttons generated programmatically -->
+                            <!-- Buttons generated programmatically -->
                         </div>
                     </div>
                 </section>
 
-                <!-- Section 6: Result / Outcome -->
+                <!-- Section 5: Result / Outcome -->
                 <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
                     <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2 mb-3">
                         <i class="fa-solid fa-flag-checkered text-slate-700"></i>
@@ -409,13 +509,13 @@
                     </div>
                 </section>
 
-                <!-- Section 7: CPR Summary Dashboard -->
+                <!-- Section 6: CPR Summary Dashboard -->
                 <section class="bg-gradient-to-br from-slate-900 to-sky-950 text-white rounded-xl shadow-md p-4">
                     <h2 class="text-sm font-semibold text-sky-300 flex items-center gap-2 border-b border-slate-700 pb-2 mb-3">
                         <i class="fa-solid fa-chart-pie"></i>
                         สรุปสถิติกระบวนการ CPR (CPR Performance Metrics)
                     </h2>
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center">
                         <div class="bg-white/10 rounded-lg p-2.5 backdrop-blur-sm">
                             <div class="text-[11px] text-slate-300">ระยะเวลารวม (CPR Time)</div>
                             <div id="statTotalTime" class="text-lg font-bold text-sky-200 font-mono mt-0.5">00:00</div>
@@ -427,6 +527,10 @@
                         <div class="bg-white/10 rounded-lg p-2.5 backdrop-blur-sm">
                             <div class="text-[11px] text-slate-300">Adrenaline ทั้งหมด</div>
                             <div id="statAdrDoses" class="text-lg font-bold text-amber-300 font-mono mt-0.5">0 dose</div>
+                        </div>
+                        <div class="bg-white/10 rounded-lg p-2.5 backdrop-blur-sm">
+                            <div class="text-[11px] text-slate-300">Defibrillation ทั้งหมด</div>
+                            <div id="statDefibCount" class="text-lg font-bold text-red-400 font-mono mt-0.5">0 ครั้ง</div>
                         </div>
                         <div class="bg-white/10 rounded-lg p-2.5 backdrop-blur-sm">
                             <div class="text-[11px] text-slate-300">% CCF (Chest Comp Ratio)</div>
@@ -468,7 +572,7 @@
                             <i class="fa-solid fa-print"></i> พิมพ์เอกสาร (Print)
                         </button>
                         <button id="btnActionSummary" onclick="showActionSummary()" disabled class="py-2.5 px-3 bg-slate-300 text-slate-500 cursor-not-allowed rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5">
-                            <i class="fa-solid fa-chart-line"></i> Action Summary
+                            <i class="fa-solid fa-file-invoice"></i> Action Summary
                         </button>
                     </div>
                     <p id="saveHint" class="text-[11px] text-amber-600 text-center pt-1"><i class="fa-solid fa-circle-info"></i> ต้องกด Stop Program ก่อนจึงจะสามารถบันทึกและพิมพ์เอกสารได้</p>
@@ -585,7 +689,7 @@
 
         <div class="mb-4">
             <h2 class="text-sm font-bold border-b pb-1 mb-2">สรุปสถิติ CPR (CPR Summary)</h2>
-            <div id="printStats" class="grid grid-cols-4 gap-2 text-xs border p-2 rounded"></div>
+            <div id="printStats" class="grid grid-cols-5 gap-2 text-xs border p-2 rounded"></div>
         </div>
 
         <div>
@@ -602,70 +706,170 @@
         </div>
     </div>
 
-    <!-- Enhanced Action Summary Graph Modal / View -->
-    <div id="modalSummaryGraph" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-2 sm:p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[92vh] flex flex-col p-4 sm:p-5 overflow-hidden">
-            <div class="flex justify-between items-center border-b pb-3 shrink-0">
-                <div>
-                    <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                        <i class="fa-solid fa-chart-line text-sky-600"></i> Action Summary Timeline Chart (Multi-Track)
-                    </h3>
-                    <p class="text-xs text-slate-500">จำแนกเหตุการณ์ตามลู่เวลา (Tracks) พร้อมแกนเวลาสัมพัทธ์ (Relative Minutes: 0, 1, 2...)</p>
+    <!-- Action Summary Modal: CPR Form View (จาก CPRform.html) - ขยายรองรับ 60 นาที -->
+    <div id="modalSummaryGraph" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-2 sm:p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-[98vw] my-auto flex flex-col p-4 sm:p-6 cpr-form-style">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center border-b pb-3 mb-4 no-print">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-file-medical text-blue-600 text-xl"></i>
+                    <h3 class="text-lg font-bold text-slate-800">แบบบันทึกการกู้ชีพ (Action Summary - CPR Form 60 นาที)</h3>
                 </div>
                 <div class="flex gap-2 items-center">
-                    <button onclick="printSummaryChart()" class="bg-sky-600 hover:bg-sky-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 shadow">
-                        <i class="fa-solid fa-print"></i> พิมพ์กราฟ
+                    <button onclick="printActionSummary()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 shadow">
+                        <i class="fa-solid fa-print"></i> พิมพ์แบบฟอร์ม
                     </button>
-                    <button onclick="closeModal('modalSummaryGraph')" class="text-slate-400 hover:text-slate-600 text-xl px-2">&times;</button>
+                    <button onclick="closeModal('modalSummaryGraph')" class="text-slate-400 hover:text-slate-600 text-2xl px-2 leading-none">&times;</button>
                 </div>
             </div>
 
-            <!-- Canvas Container -->
-            <div class="flex-grow my-3 bg-slate-50 border rounded-xl p-2 relative flex flex-col items-center justify-center overflow-auto">
-                <canvas id="timelineCanvas" class="max-w-full max-h-full rounded cursor-pointer"></canvas>
-                <!-- Canvas Tooltip floating element -->
-                <div id="canvasTooltip" class="absolute hidden bg-slate-900/90 text-white text-[11px] p-2 rounded-lg shadow-xl pointer-events-none z-20 max-w-xs border border-slate-700 backdrop-blur-sm"></div>
-            </div>
+            <!-- CPR Form Body -->
+            <div id="cprFormContent" class="w-full bg-white text-black text-xs space-y-2 overflow-x-auto">
+                <!-- Header -->
+                <div class="flex justify-between items-end border-b-2 border-black pb-1">
+                    <h1 class="text-base font-bold m-0">แบบบันทึกการกู้ชีพ โรงพยาบาลธรรมศาสตร์เฉลิมพระเกียรติ</h1>
+                    <div class="flex items-center gap-3 text-xs font-semibold">
+                        <span>แผ่นที่ <input type="text" value="1" class="w-8 border-b border-dotted border-black text-center outline-none"></span>
+                        <span>HN: <span id="formHn" class="border-b border-dotted border-black px-1"></span></span>
+                    </div>
+                </div>
 
-            <!-- Comprehensive Icon Legend -->
-            <div class="shrink-0 border-t pt-2.5 text-xs text-slate-700 grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                <div class="flex items-center gap-2">
-                    <span class="w-3.5 h-3.5 rounded-full bg-blue-500 inline-block border border-white shadow-sm"></span>
-                    <span><strong>Track 1:</strong> EKG Rhythm (Circle)</span>
+                <!-- Section 1 Details -->
+                <div class="border border-black rounded p-2 text-xs space-y-1.5">
+                    <div class="grid grid-cols-12 gap-2">
+                        <div class="col-span-5"><strong>ชื่อ-สกุล:</strong> <span id="formName" class="border-b border-dotted border-black"></span></div>
+                        <div class="col-span-2"><strong>อายุ:</strong> <span id="formAge" class="border-b border-dotted border-black"></span> ปี</div>
+                        <div class="col-span-5"><strong>หน่วยงาน:</strong> <span id="formDept" class="border-b border-dotted border-black"></span></div>
+                    </div>
+                    <div class="grid grid-cols-12 gap-2">
+                        <div class="col-span-4"><strong>เวลาเริ่ม Arrest:</strong> <span id="formArrestTime" class="border-b border-dotted border-black"></span> น.</div>
+                        <div class="col-span-4"><strong>Witness:</strong> <span id="formWitness" class="border-b border-dotted border-black"></span></div>
+                        <div class="col-span-4"><strong>Bystander CPR:</strong> <span id="formBystander" class="border-b border-dotted border-black"></span></div>
+                    </div>
+                    <div class="grid grid-cols-12 gap-2">
+                        <div class="col-span-4"><strong>No flow time:</strong> <span id="formNoFlow" class="border-b border-dotted border-black"></span> นาที</div>
+                        <div class="col-span-8"><strong>ผู้บันทึก:</strong> <span id="formRecorder" class="border-b border-dotted border-black"></span></div>
+                    </div>
+                    <div>
+                        <strong>รายละเอียดเหตุการณ์:</strong> <span id="formEventDesc" class="border-b border-dotted border-black"></span>
+                    </div>
                 </div>
-                <div class="flex items-center gap-2">
-                    <span class="w-3.5 h-3.5 bg-rose-600 rotate-45 inline-block shadow-sm"></span>
-                    <span><strong>Track 2:</strong> Defib Shock (Diamond)</span>
+
+                <!-- Lab Section -->
+                <div class="border border-black rounded p-1.5 text-xs">
+                    <div class="font-bold mb-0.5">ผล lab ที่ส่งขณะ CPR:</div>
+                    <div id="formLabText" class="min-h-[16px] text-xs font-mono"></div>
                 </div>
-                <div class="flex items-center gap-2">
-                    <span class="w-3.5 h-3.5 bg-emerald-600 inline-block rounded-sm shadow-sm"></span>
-                    <span><strong>Track 2:</strong> CPR / Pulse Check (Square)</span>
+
+                <!-- CPR Grid Table (30 Columns / 60 Mins) -->
+                <div class="cpr-table-container relative overflow-x-auto">
+                    <!-- Overlay สำหรับตัวหนังสือที่คาบอยู่บนเส้นแบ่งช่อง -->
+                    <div id="gridOverlay" class="grid-overlay-container"></div>
+
+                    <table class="cpr-table min-w-[1000px]" id="cprFormTable">
+                        <thead>
+                            <tr id="rowTime">
+                                <th class="col-label">เวลา (น.)</th>
+                                <!-- 30 Time columns generated by JS -->
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr id="rowEkg"><td class="col-label">EKG</td></tr>
+                            <tr id="rowDefib"><td class="col-label">Defibrillation (J)</td></tr>
+                            <tr id="rowAdr"><td class="col-label">Adrenaline (1 mg)</td></tr>
+                            <tr id="rowAmio"><td class="col-label">Amiodarone (mg)</td></tr>
+                            <tr id="rowEtco2"><td class="col-label">End-tidal CO2</td></tr>
+                            <!-- Item Rows 6 to 13 -->
+                            <tr id="rowItem6"><td class="col-label" id="lblItem6">6. </td></tr>
+                            <tr id="rowItem7"><td class="col-label" id="lblItem7">7. </td></tr>
+                            <tr id="rowItem8"><td class="col-label" id="lblItem8">8. </td></tr>
+                            <tr id="rowItem9"><td class="col-label" id="lblItem9">9. </td></tr>
+                            <tr id="rowItem10"><td class="col-label" id="lblItem10">10. </td></tr>
+                            <tr id="rowItem11"><td class="col-label" id="lblItem11">11. </td></tr>
+                            <tr id="rowItem12"><td class="col-label" id="lblItem12">12. </td></tr>
+                            <tr id="rowItem13"><td class="col-label" id="lblItem13">13. </td></tr>
+                        </tbody>
+                    </table>
                 </div>
-                <div class="flex items-center gap-2">
-                    <span class="w-3.5 h-3.5 bg-amber-500 inline-block rounded-full border border-white shadow-sm"></span>
-                    <span><strong>Track 2:</strong> Adrenaline (Amber Circle)</span>
+
+                <!-- Bottom Section -->
+                <div class="border border-black rounded p-2 text-xs space-y-1.5">
+                    <div class="font-bold border-b border-gray-300 pb-0.5">ผลการ CPR และเวลายุติ:</div>
+                    <div class="grid grid-cols-12 gap-2">
+                        <div class="col-span-6 flex items-center gap-2">
+                            <span>เวลาที่หยุด CPR:</span>
+                            <span id="formStopTime" class="font-bold border-b border-dotted border-black px-2">--:--</span> น.
+                        </div>
+                        <div class="col-span-6 flex items-center gap-2">
+                            <span>ระยะเวลารวม:</span>
+                            <span id="formTotalMins" class="font-bold border-b border-dotted border-black px-2">0</span> นาที
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-x-6 gap-y-2 pt-0.5">
+                        <label class="flex items-center gap-1.5 cursor-pointer">
+                            <input type="checkbox" id="chkDead" class="w-4 h-4 accent-slate-800">
+                            <span class="font-bold text-slate-800">Dead / Deceased</span>
+                        </label>
+                        <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                            <label class="flex items-center gap-1.5 cursor-pointer">
+                                <input type="checkbox" id="chkRosc" class="w-4 h-4 accent-emerald-600">
+                                <span class="font-bold text-emerald-800">ROSC (Return of Spontaneous Circulation)</span>
+                            </label>
+                            <span class="text-xs text-slate-700 font-medium">
+                                V/S : 
+                                BP <span class="border-b border-dotted border-black px-2 font-mono">................</span> 
+                                HR <span class="border-b border-dotted border-black px-2 font-mono">................</span> 
+                                RR <span class="border-b border-dotted border-black px-2 font-mono">................</span> 
+                                O2sat <span class="border-b border-dotted border-black px-2 font-mono">................</span> 
+                                GCS <span class="border-b border-dotted border-black px-2 font-mono">................</span>
+                            </span>
+                        </div>
+                    </div>
                 </div>
-                <div class="flex items-center gap-2">
-                    <span class="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[10px] border-b-sky-600 inline-block"></span>
-                    <span><strong>Track 3:</strong> Meds / IV (Triangle Up)</span>
+
+                <!-- สรุปสถิติกระบวนการ CPR ในรายงาน Action Summary (วางไว้ก่อนบันทึกทางการพยาบาล) -->
+                <div class="border border-black rounded p-2 text-xs bg-gray-50 space-y-1">
+                    <div class="font-bold border-b border-gray-400 pb-1 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-pie text-slate-700"></i>
+                        <span>สรุปสถิติกระบวนการ CPR (CPR Performance Metrics)</span>
+                    </div>
+                    <div class="grid grid-cols-5 gap-2 text-center pt-1 font-mono">
+                        <div class="border border-gray-300 p-1 rounded bg-white">
+                            <div class="text-[10px] text-gray-600">ระยะเวลารวม</div>
+                            <div id="reportStatTime" class="font-bold text-slate-800">00:00:00</div>
+                        </div>
+                        <div class="border border-gray-300 p-1 rounded bg-white">
+                            <div class="text-[10px] text-gray-600">จำนวน CPR Cycles</div>
+                            <div id="reportStatCycles" class="font-bold text-slate-800">0 รอบ</div>
+                        </div>
+                        <div class="border border-gray-300 p-1 rounded bg-white">
+                            <div class="text-[10px] text-gray-600">Adrenaline ทั้งหมด</div>
+                            <div id="reportStatAdr" class="font-bold text-slate-800">0 dose</div>
+                        </div>
+                        <div class="border border-gray-300 p-1 rounded bg-white">
+                            <div class="text-[10px] text-gray-600">Defibrillation ทั้งหมด</div>
+                            <div id="reportStatDefib" class="font-bold text-slate-800">0 ครั้ง</div>
+                        </div>
+                        <div class="border border-gray-300 p-1 rounded bg-white">
+                            <div class="text-[10px] text-gray-600">% CCF</div>
+                            <div id="reportStatCcf" class="font-bold text-slate-800">0%</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="flex items-center gap-2">
-                    <span class="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[10px] border-t-teal-600 inline-block"></span>
-                    <span><strong>Track 3:</strong> Airway / EtCO2 (Triangle Down)</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <span class="w-3.5 h-3.5 bg-purple-600 inline-block rounded-sm rotate-45 border border-white shadow-sm"></span>
-                    <span><strong>Track 4:</strong> 5Hs & 5Ts (Purple Diamond)</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <span class="w-3.5 h-3.5 bg-slate-800 rounded-full inline-block shadow-sm"></span>
-                    <span><strong>Start/Outcome:</strong> Program Event</span>
+
+                <!-- Nurse Note Section -->
+                <div class="border border-black rounded p-2 text-xs">
+                    <div class="font-bold mb-1">บันทึกทางการพยาบาล (Nurse's Note):</div>
+                    <textarea rows="2" class="w-full border border-gray-300 rounded p-1.5 text-xs outline-none focus:ring-1 focus:ring-blue-500" placeholder="บันทึกเพิ่มเติม..."></textarea>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
+    // 1. นำ Web App URL ที่ได้จาก Google Apps Script มาวางตรงนี้
+    const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxfjyR3rI0NuucB_dAQ2taTxFnNA2236bZh5geob4qUQiLrUnHulV8DoZs_Af_mlPLdhw/exec";
+
         // Global Application State
         let isProgramRunning = false;
         let programStartTime = null;
@@ -675,10 +879,12 @@
         // Timers State
         let compTimer = null;
         let compTimeRemaining = 120; // 2 minutes
-        let compState = 'IDLE'; // IDLE, RUNNING, CHECK_PULSE
+        let compState = 'IDLE'; // IDLE, RUNNING, CHECK_PULSE, RESUME_CPR
         let compCount = 0; // Total cycles
         let compTotalSeconds = 0; // Accumulated compression seconds for CCF
         let compAlarmInterval = null;
+
+        let defibCount = 0; // Total Defibrillation Shocks
 
         let adrTimer = null;
         let adrTimeRemaining = 180; // 3 minutes
@@ -705,7 +911,6 @@
         ];
 
         let selectedCauseIndex = null;
-        let canvasPlotPoints = []; // Interactive hover targets for Canvas
 
         // Initialize Audio Context for Speech/Beeper Synthesis
         let audioCtx = null;
@@ -719,7 +924,6 @@
         window.addEventListener('DOMContentLoaded', () => {
             renderReversibleCauses();
             updateSummaryMetrics();
-            initCanvasHover();
         });
 
         // Format current date-time as HH:mm:ss
@@ -810,9 +1014,27 @@
             closeModal('modalEkg');
             addTimelineEvent(`EKG Rhythm: ${rhythm}`, rhythm === 'VF' || rhythm === 'pVT' ? 'shock' : 'ekg');
 
-            if (rhythm === 'VF' || rhythm === 'pVT') {
+            if (rhythm === 'Asystole' || rhythm === 'PEA') {
+                // สำหรับ Asystole หรือ PEA เปลี่ยนปุ่มเป็น Resume CPR ทันที พร้อมไฟกระพริบและเสียงแจ้งเตือน
+                triggerResumeCprState();
+            } else if (rhythm === 'VF' || rhythm === 'pVT') {
                 openDefibModal();
             }
+        }
+
+        function triggerResumeCprState() {
+            compState = 'RESUME_CPR';
+            const btn = document.getElementById('btnChestComp');
+            btn.className = "w-full min-h-[72px] py-3 px-3 rounded-xl font-bold shadow-lg transition flex flex-col items-center justify-center border-2 animate-flash-red cursor-pointer";
+            document.getElementById('txtCompMain').innerHTML = `<i class="fa-solid fa-play"></i> RESUME CPR`;
+            document.getElementById('timeCompSub').innerText = "กดเพื่อเริ่มทำ CPR รอบถัดไป";
+
+            // Sound and speech alert "Resume CPR"
+            speakText("Resume CPR");
+            clearCompAlarm();
+            compAlarmInterval = setInterval(() => {
+                speakText("Resume CPR");
+            }, 5000);
         }
 
         function openDefibModal() {
@@ -824,7 +1046,12 @@
         function confirmDefib() {
             const joules = document.getElementById('defibRange').value;
             closeModal('modalDefib');
+            defibCount++;
             addTimelineEvent(`Defibrillation ${joules} J`, 'shock');
+            updateSummaryMetrics();
+
+            // สำหรับ VF / pVT หลังกด Defibrillation แล้วเปลี่ยนเป็น Resume CPR พร้อมไฟกระพริบและเสียงแจ้งเตือน
+            triggerResumeCprState();
         }
 
         function handleChestCompClick() {
@@ -841,24 +1068,7 @@
                     addTimelineEvent("Start Chest Compression", "comp");
                 }
 
-                // Reset and start 2-min countdown
-                compState = 'RUNNING';
-                compTimeRemaining = 120;
-                clearCompAlarm();
-                btn.className = "w-full min-h-[72px] py-3 px-3 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-semibold shadow-md transition flex flex-col items-center justify-center border-2 border-sky-600";
-                
-                compTimer = setInterval(() => {
-                    compTimeRemaining--;
-                    compTotalSeconds++;
-                    const m = Math.floor(compTimeRemaining / 60).toString().padStart(2, '0');
-                    const s = (compTimeRemaining % 60).toString().padStart(2, '0');
-                    document.getElementById('txtCompMain').innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Compression (${m}:${s})`;
-                    
-                    if (compTimeRemaining <= 0) {
-                        clearInterval(compTimer);
-                        triggerCheckPulseState();
-                    }
-                }, 1000);
+                startChestCompTimer();
 
             } else if (compState === 'CHECK_PULSE') {
                 // Clicked Check Pulse button
@@ -866,19 +1076,39 @@
                 compCount++;
                 addTimelineEvent(`Check Pulse (เสร็จสิ้น CPR Cycle ที่ ${compCount})`, 'comp');
 
-                // From 2nd Check pulse onwards, pop up EKG
-                if (compCount >= 1) {
-                    openEkgModal();
-                }
+                // Pop up EKG Rhythm Selection
+                openEkgModal();
 
-                // Return to initial Start Chest Compression
-                compState = 'IDLE';
-                btn.className = "w-full min-h-[72px] py-3 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-semibold shadow-md transition flex flex-col items-center justify-center border-2 border-rose-600";
-                document.getElementById('txtCompMain').innerHTML = `<i class="fa-solid fa-hand-holding-heart"></i> Start Chest Compression`;
-                document.getElementById('timeCompSub').innerText = "รอบ 2 นาที (02:00)";
+            } else if (compState === 'RESUME_CPR') {
+                // Clicked Resume CPR button
+                clearCompAlarm();
+                addTimelineEvent("Resume CPR", "comp");
+                startChestCompTimer();
             }
 
             updateSummaryMetrics();
+        }
+
+        function startChestCompTimer() {
+            const btn = document.getElementById('btnChestComp');
+            compState = 'RUNNING';
+            compTimeRemaining = 120;
+            clearCompAlarm();
+            btn.className = "w-full min-h-[72px] py-3 px-3 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-semibold shadow-md transition flex flex-col items-center justify-center border-2 border-sky-600";
+            
+            if (compTimer) clearInterval(compTimer);
+            compTimer = setInterval(() => {
+                compTimeRemaining--;
+                compTotalSeconds++;
+                const m = Math.floor(compTimeRemaining / 60).toString().padStart(2, '0');
+                const s = (compTimeRemaining % 60).toString().padStart(2, '0');
+                document.getElementById('txtCompMain').innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Compression (${m}:${s})`;
+                
+                if (compTimeRemaining <= 0) {
+                    clearInterval(compTimer);
+                    triggerCheckPulseState();
+                }
+            }, 1000);
         }
 
         function triggerCheckPulseState() {
@@ -1146,6 +1376,7 @@
 
             document.getElementById('statCycles').innerText = `${compCount} รอบ`;
             document.getElementById('statAdrDoses').innerText = `${adrDoses} dose`;
+            document.getElementById('statDefibCount').innerText = `${defibCount} ครั้ง`;
 
             let ccf = 0;
             if (totalSecs > 0 && compTotalSeconds > 0) {
@@ -1220,27 +1451,121 @@
             });
         }
 
-        function saveRecord() {
-            if (isProgramRunning) {
-                alert("ไม่สามารถกดบันทึกได้! กรุณากด 'Stop Program' เพื่อยุติกระบวนการก่อนทำการบันทึกเอกสาร");
-                return;
+       async function saveRecord() {
+    if (isProgramRunning) {
+        alert("ไม่สามารถบันทึกได้! กรุณากด 'Stop Program' เพื่อยุติกระบวนการก่อนทำการบันทึกเอกสาร");
+        return;
+    }
+
+    const dept = document.getElementById('ptDept')?.value.trim() || 'Unspecified_Dept';
+    const dateStr = new Date().toISOString().split('T')[0]; // รูปแบบ YYYY-MM-DD
+    const fileName = `${dateStr}_${dept.replace(/[\/\s]/g, '_')}.pdf`;
+
+    // แสดงสถานะกำลังบันทึกที่ปุ่ม
+    const btnSave = document.getElementById('btnSaveRecord');
+    const originalText = btnSave ? btnSave.innerHTML : '';
+    if (btnSave) {
+        btnSave.disabled = true;
+        btnSave.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึก & สร้าง PDF...`;
+    }
+
+    try {
+        // เตรียมข้อมูลก่อนพิมพ์เอกสาร
+        if (typeof preparePrintableData === 'function') {
+            preparePrintableData();
+        }
+        
+        // สร้าง Wrapper ชั่วคราวสำหรับรวมเอกสารทั้ง 2 หน้าเข้าด้วยกัน
+        const wrapper = document.createElement('div');
+        wrapper.id = 'pdfExportWrapper';
+        wrapper.style.padding = '10px';
+        wrapper.style.background = '#ffffff';
+
+        // 1. ดึง DOM หน้าพิมพ์เอกสาร (A4 Vertical)
+        const printAreaElement = document.getElementById('printable-area');
+        if (printAreaElement) {
+            const printArea = printAreaElement.cloneNode(true);
+            printArea.classList.remove('hidden');
+            wrapper.appendChild(printArea);
+        }
+        
+        // 2. ดึง DOM หน้า Action Summary (CPR Form Content)
+        const cprFormElement = document.getElementById('cprFormContent');
+        if (cprFormElement) {
+            const pageBreak = document.createElement('div');
+            pageBreak.style.pageBreakBefore = 'always';
+            wrapper.appendChild(pageBreak);
+
+            const cprForm = cprFormElement.cloneNode(true);
+            wrapper.appendChild(cprForm);
+        }
+
+        document.body.appendChild(wrapper);
+
+        // ตั้งค่าการแปลง HTML เป็น PDF
+        const opt = {
+            margin:       [10, 10, 10, 10],
+            filename:     fileName,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        // แปลงเป็น Base64 Data URL
+        const pdfBase64 = await html2pdf().set(opt).from(wrapper).outputPdf('datauristring');
+
+        // ลบ Wrapper ชั่วคราวออกจากหน้าเว็บ
+        document.body.removeChild(wrapper);
+
+        // ส่งไฟล์ Base64 ไปยัง Google Drive ผ่าน Google Apps Script Web App API
+        const response = await fetch(GOOGLE_WEB_APP_URL, {
+            method: 'POST',
+            mode: 'cors',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({
+                fileName: fileName,
+                fileData: pdfBase64
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.status === 'success') {
+            alert(`บันทึกข้อมูลและส่งไฟล์ PDF เข้า Google Drive สำเร็จ!\nชื่อไฟล์: ${fileName}`);
+            
+            isRecordSaved = true;
+            
+            const saveHint = document.getElementById('saveHint');
+            if (saveHint) {
+                saveHint.innerText = "บันทึกข้อมูลเรียบร้อยแล้ว พร้อมสำหรับพิมพ์เอกสาร หรือดู Action Summary";
+                saveHint.className = "text-[11px] text-emerald-600 font-semibold text-center pt-1";
             }
 
-            isRecordSaved = true;
-            document.getElementById('saveHint').innerText = "บันทึกข้อมูลเรียบร้อยแล้ว พร้อมสำหรับพิมพ์เอกสาร หรือดู Action Summary";
-            document.getElementById('saveHint').className = "text-[11px] text-emerald-600 font-semibold text-center pt-1";
-
             const btnPrint = document.getElementById('btnPrintPdf');
+            if (btnPrint) {
+                btnPrint.disabled = false;
+                btnPrint.className = "py-2.5 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow transition flex items-center justify-center gap-1.5 cursor-pointer";
+            }
+
             const btnSummary = document.getElementById('btnActionSummary');
-
-            btnPrint.disabled = false;
-            btnPrint.className = "py-2.5 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow transition flex items-center justify-center gap-1.5 cursor-pointer";
-
-            btnSummary.disabled = false;
-            btnSummary.className = "py-2.5 px-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold shadow transition flex items-center justify-center gap-1.5 cursor-pointer";
-
-            alert("บันทึกข้อมูลสำเร็จเรียบร้อย");
+            if (btnSummary) {
+                btnSummary.disabled = false;
+                btnSummary.className = "py-2.5 px-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold shadow transition flex items-center justify-center gap-1.5 cursor-pointer";
+            }
+        } else {
+            alert(`เกิดข้อผิดพลาดในการบันทึกไฟล์: ${result.message}`);
         }
+
+    } catch (err) {
+        console.error(err);
+        alert("เกิดข้อผิดพลาดระหว่างกระบวนการสร้างและส่ง PDF เข้า Google Drive");
+    } finally {
+        if (btnSave) {
+            btnSave.disabled = false;
+            btnSave.innerHTML = originalText;
+        }
+    }
+}
 
         function printDoc() {
             if (!isRecordSaved) {
@@ -1278,6 +1603,7 @@
                 <div><strong>ระยะเวลารวม:</strong> ${document.getElementById('statTotalTime').innerText}</div>
                 <div><strong>จำนวน Cycle:</strong> ${document.getElementById('statCycles').innerText}</div>
                 <div><strong>Adrenaline:</strong> ${document.getElementById('statAdrDoses').innerText}</div>
+                <div><strong>Defibrillation:</strong> ${document.getElementById('statDefibCount').innerText}</div>
                 <div><strong>% CCF:</strong> ${document.getElementById('statCcf').innerText}</div>
             `;
 
@@ -1292,277 +1618,287 @@
                 tbody.appendChild(tr);
             });
 
+            document.body.classList.remove('print-landscape');
+            document.body.classList.add('print-portrait');
+
             const printableArea = document.getElementById('printable-area');
             printableArea.classList.remove('hidden');
             window.print();
             printableArea.classList.add('hidden');
+            document.body.classList.remove('print-portrait');
         }
 
+        function printActionSummary() {
+            document.body.classList.remove('print-portrait');
+            document.body.classList.add('print-landscape');
+            window.print();
+            document.body.classList.remove('print-landscape');
+        }
+
+        // Action Summary Implementation using CPRform structure (ปรับขยาย 30 ช่อง = 60 นาที)
         function showActionSummary() {
             if (!isRecordSaved) {
                 alert("กรุณากดบันทึกข้อมูลก่อนทำรายการ");
                 return;
             }
 
+            populateCPRForm();
             document.getElementById('modalSummaryGraph').classList.remove('hidden');
-            setTimeout(drawActionTimelineChart, 100);
         }
 
-        function drawActionTimelineChart() {
-            const canvas = document.getElementById('timelineCanvas');
-            const ctx = canvas.getContext('2d');
+        function populateCPRForm() {
+            // 1. Fill Section 1
+            document.getElementById('formName').innerText = document.getElementById('ptName').value || "-";
+            document.getElementById('formAge').innerText = document.getElementById('ptAge').value || "-";
+            document.getElementById('formHn').innerText = document.getElementById('ptHn').value || "-";
+            document.getElementById('formDept').innerText = document.getElementById('ptDept').value || "-";
+            document.getElementById('formArrestTime').innerText = document.getElementById('ptArrestTime').value || "-";
+            document.getElementById('formWitness').innerText = document.getElementById('ptWitness').value || "-";
+            document.getElementById('formBystander').innerText = document.getElementById('ptBystander').value || "-";
+            document.getElementById('formNoFlow').innerText = document.getElementById('ptNoFlow').value || "0";
+            document.getElementById('formRecorder').innerText = document.getElementById('ptRecorder').value || "-";
+            document.getElementById('formEventDesc').innerText = document.getElementById('ptEventDesc').value || "-";
 
-            canvas.width = 1000;
-            canvas.height = 520;
-            canvasPlotPoints = []; // Reset hit targets
+            // 2. Fill Lab Section (Hydrogen ion & Hypo/Hyperkalemia)
+            const hCause = causesList.find(c => c.id === 'hydrogen');
+            const kCause = causesList.find(c => c.id === 'hypoHyperK');
+            let labTexts = [];
+            if (hCause && hCause.text) labTexts.push(`Hydrogen ion (Acidosis): ${hCause.text}`);
+            if (kCause && kCause.text) labTexts.push(`Hypo/Hyperkalemia: ${kCause.text}`);
+            document.getElementById('formLabText').innerText = labTexts.join(" | ") || "";
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // 3. Build CPR Grid Table (30 Columns = 60 Minutes)
+            const NUM_COLS = 30;
+            const startTimestamp = programStartTime ? programStartTime : (timelineData[0] ? timelineData[0].timestamp : new Date());
 
-            // Canvas Background
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Chart Header Title
-            ctx.fillStyle = '#0f172a';
-            ctx.font = 'bold 16px Kanit, sans-serif';
-            ctx.fillText('RESUSCITATION MULTI-TRACK ACTION SUMMARY CHART', 25, 30);
-
-            // Calculate duration and relative minutes
-            const startT = programStartTime ? programStartTime.getTime() : (timelineData[0] ? timelineData[0].timestamp.getTime() : Date.now());
-            const endT = programStopTime ? programStopTime.getTime() : Date.now();
-            const totalSecs = Math.max(60, Math.ceil((endT - startT) / 1000));
-            const totalMins = Math.max(3, Math.ceil(totalSecs / 60));
-
-            const marginLeft = 220;
-            const marginRight = 40;
-            const marginTop = 60;
-            const marginBottom = 50;
-            const chartWidth = canvas.width - marginLeft - marginRight;
-
-            // Define Tracks Vertically
-            const tracks = [
-                { id: 'ekg', title: 'Track 1: EKG Rhythm', color: '#0284c7', y: 100 },
-                { id: 'interventions', title: 'Track 2: Interventions & Timers', color: '#10b981', y: 190 },
-                { id: 'medsAirway', title: 'Track 3: Meds, IV & Airway', color: '#0d9488', y: 280 },
-                { id: 'causes', title: 'Track 4: 5Hs & 5Ts Reversible Causes', color: '#9333ea', y: 370 }
-            ];
-
-            // Render Track Lines & Background Grid
-            tracks.forEach((tr) => {
-                // Track Label Side Box
-                ctx.fillStyle = '#f1f5f9';
-                ctx.beginPath();
-                ctx.roundRect(15, tr.y - 20, 190, 40, 6);
-                ctx.fill();
-
-                ctx.fillStyle = tr.color;
-                ctx.beginPath();
-                ctx.arc(28, tr.y, 5, 0, Math.PI * 2);
-                ctx.fill();
-
-                ctx.fillStyle = '#1e293b';
-                ctx.font = 'bold 12px Kanit, sans-serif';
-                ctx.fillText(tr.title, 40, tr.y + 4);
-
-                // Horizontal Track Line
-                ctx.strokeStyle = '#cbd5e1';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(marginLeft, tr.y);
-                ctx.lineTo(marginLeft + chartWidth, tr.y);
-                ctx.stroke();
-            });
-
-            // Render X-Axis relative minute markers (0, 1, 2, 3...)
-            const axisY = 440;
-            ctx.strokeStyle = '#64748b';
-            ctx.lineWidth = 2.5;
-            ctx.beginPath();
-            ctx.moveTo(marginLeft, axisY);
-            ctx.lineTo(marginLeft + chartWidth, axisY);
-            ctx.stroke();
-
-            ctx.fillStyle = '#334155';
-            ctx.font = 'bold 12px Kanit, sans-serif';
-            ctx.fillText('Relative Time (Minutes):', 25, axisY + 4);
-
-            for (let m = 0; m <= totalMins; m++) {
-                const x = marginLeft + (m / totalMins) * chartWidth;
-
-                // Vertical grid tick
-                ctx.strokeStyle = '#e2e8f0';
-                ctx.lineWidth = 1;
-                ctx.setLineDash([4, 4]);
-                ctx.beginPath();
-                ctx.moveTo(x, marginTop - 10);
-                ctx.lineTo(x, axisY);
-                ctx.stroke();
-                ctx.setLineDash([]); // Reset line dash
-
-                // Tick marker on axis
-                ctx.strokeStyle = '#475569';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(x, axisY - 5);
-                ctx.lineTo(x, axisY + 5);
-                ctx.stroke();
-
-                // Minute label
-                ctx.fillStyle = '#0f172a';
-                ctx.font = 'bold 11px monospace';
-                ctx.fillText(`Min ${m}`, x - 15, axisY + 22);
-            }
-
-            if (timelineData.length === 0) {
-                ctx.fillStyle = '#94a3b8';
-                ctx.font = '14px Kanit';
-                ctx.fillText('ไม่มีข้อมูลเหตุการณ์สำหรับแสดงผล', marginLeft + 150, 240);
-                return;
-            }
-
-            // Plot events onto corresponding tracks
-            timelineData.forEach((evt) => {
-                const evtMs = evt.timestamp.getTime();
-                const elapsedSec = Math.max(0, (evtMs - startT) / 1000);
-                const relMin = elapsedSec / 60;
-                const x = marginLeft + (relMin / totalMins) * chartWidth;
-
-                let trackY = tracks[1].y; // Default Interventions
-                let shape = 'circle';
-                let fillColor = '#0284c7';
-                let symbolType = evt.category;
-
-                // Map category to specific tracks and symbols
-                if (evt.category === 'ekg') {
-                    trackY = tracks[0].y; // Track 1
-                    shape = 'circle';
-                    fillColor = '#2563eb';
-                } else if (evt.category === 'shock') {
-                    trackY = tracks[1].y; // Track 2
-                    shape = 'diamond';
-                    fillColor = '#dc2626';
-                } else if (evt.category === 'comp') {
-                    trackY = tracks[1].y; // Track 2
-                    shape = 'square';
-                    fillColor = '#059669';
-                } else if (evt.category === 'drug' && evt.text.includes('Adrenaline')) {
-                    trackY = tracks[1].y; // Track 2
-                    shape = 'circle';
-                    fillColor = '#d97706';
-                } else if (evt.category === 'drug' || evt.category === 'fluid') {
-                    trackY = tracks[2].y; // Track 3
-                    shape = 'triangle-up';
-                    fillColor = '#0284c7';
-                } else if (evt.category === 'airway' || evt.category === 'etco2') {
-                    trackY = tracks[2].y; // Track 3
-                    shape = 'triangle-down';
-                    fillColor = '#0d9488';
-                } else if (evt.category === 'cause') {
-                    trackY = tracks[3].y; // Track 4
-                    shape = 'diamond';
-                    fillColor = '#9333ea';
-                } else if (evt.category === 'system' || evt.category === 'rosc' || evt.category === 'dead') {
-                    // System events draw small vertical line across tracks
-                    ctx.strokeStyle = evt.category === 'rosc' ? '#059669' : (evt.category === 'dead' ? '#1e293b' : '#64748b');
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    ctx.moveTo(x, marginTop);
-                    ctx.lineTo(x, axisY);
-                    ctx.stroke();
-
-                    trackY = tracks[1].y;
-                    shape = 'circle';
-                    fillColor = evt.category === 'rosc' ? '#059669' : '#1e293b';
-                }
-
-                // Draw Symbol Shape
-                drawSymbol(ctx, x, trackY, shape, fillColor);
-
-                // Register interactive plot point target for tooltip mouseover
-                canvasPlotPoints.push({
-                    x: x,
-                    y: trackY,
-                    radius: 10,
-                    data: evt,
-                    relMinStr: `Minute ${relMin.toFixed(1)} (${evt.time})`
+            // Generate time headers (Start time + 2 mins increments up to 60 mins)
+            let timeHeaders = [];
+            let startBaseDate = new Date(startTimestamp.getTime());
+            
+            for (let i = 0; i < NUM_COLS; i++) {
+                const colTime = new Date(startBaseDate.getTime() + i * 2 * 60000);
+                const h = colTime.getHours().toString().padStart(2, '0');
+                const m = colTime.getMinutes().toString().padStart(2, '0');
+                timeHeaders.push({
+                    str: `${h}:${m}`,
+                    time: colTime
                 });
-            });
-        }
-
-        // Symbol Drawing Helper Functions
-        function drawSymbol(ctx, x, y, shape, fillColor) {
-            ctx.fillStyle = fillColor;
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 2;
-
-            ctx.beginPath();
-            if (shape === 'circle') {
-                ctx.arc(x, y, 7, 0, Math.PI * 2);
-            } else if (shape === 'square') {
-                ctx.rect(x - 6, y - 6, 12, 12);
-            } else if (shape === 'diamond') {
-                ctx.moveTo(x, y - 8);
-                ctx.lineTo(x + 8, y);
-                ctx.lineTo(x, y + 8);
-                ctx.lineTo(x - 8, y);
-                ctx.closePath();
-            } else if (shape === 'triangle-up') {
-                ctx.moveTo(x, y - 8);
-                ctx.lineTo(x + 7, y + 6);
-                ctx.lineTo(x - 7, y + 6);
-                ctx.closePath();
-            } else if (shape === 'triangle-down') {
-                ctx.moveTo(x - 7, y - 6);
-                ctx.lineTo(x + 7, y - 6);
-                ctx.lineTo(x, y + 8);
-                ctx.closePath();
             }
-            ctx.fill();
-            ctx.stroke();
-        }
 
-        // Interactive Tooltip Hover Engine for Canvas
-        function initCanvasHover() {
-            const canvas = document.getElementById('timelineCanvas');
-            const tooltip = document.getElementById('canvasTooltip');
+            // Render Time Header Row
+            const rowTime = document.getElementById('rowTime');
+            rowTime.innerHTML = '<th class="col-label">เวลา (น.)</th>';
+            timeHeaders.forEach(th => {
+                const thCell = document.createElement('th');
+                thCell.innerText = th.str;
+                rowTime.appendChild(thCell);
+            });
 
-            canvas.addEventListener('mousemove', (e) => {
-                const rect = canvas.getBoundingClientRect();
-                const scaleX = canvas.width / rect.width;
-                const scaleY = canvas.height / rect.height;
+            // Prepare Data Grid Holders
+            let ekgRowVals = Array(NUM_COLS).fill('');
+            let defibRowVals = Array(NUM_COLS).fill('');
+            let adrRowVals = Array(NUM_COLS).fill('');
+            let amioRowVals = Array(NUM_COLS).fill('');
+            let etco2RowVals = Array(NUM_COLS).fill('');
+            let overlays = []; // For events falling between columns
 
-                const mouseX = (e.clientX - rect.left) * scaleX;
-                const mouseY = (e.clientY - rect.top) * scaleY;
+            // Items List (6 to 13) -> Exclude Amiodarone
+            let customItemsList = []; // { name, events: [] }
 
-                let found = null;
-                for (let pt of canvasPlotPoints) {
-                    const dist = Math.hypot(pt.x - mouseX, pt.y - mouseY);
-                    if (dist <= pt.radius) {
-                        found = pt;
-                        break;
+            // Helper to calculate fractional column index based on timestamp
+            function getColPosition(eventTimestamp) {
+                const diffMs = eventTimestamp.getTime() - startTimestamp.getTime();
+                const diffMins = diffMs / 60000;
+                const colIndex = diffMins / 2; // 2 mins per column
+                return colIndex;
+            }
+
+            // Process Timeline Logs
+            timelineData.forEach(item => {
+                const colPos = getColPosition(item.timestamp);
+                const roundedCol = Math.round(colPos);
+                const isExactCol = Math.abs(colPos - roundedCol) < 0.25;
+
+                // EKG Mapping
+                if (item.category === 'ekg' || (item.category === 'shock' && (item.text.includes('VF') || item.text.includes('pVT')))) {
+                    let rhythmCode = '';
+                    if (item.text.includes('Asystole')) rhythmCode = 'ASY';
+                    else if (item.text.includes('PEA')) rhythmCode = 'PEA';
+                    else if (item.text.includes('VF')) rhythmCode = 'VF';
+                    else if (item.text.includes('pVT')) rhythmCode = 'pVT';
+
+                    if (rhythmCode) {
+                        if (isExactCol && roundedCol >= 0 && roundedCol < NUM_COLS) {
+                            ekgRowVals[roundedCol] = rhythmCode;
+                        } else if (colPos >= 0 && colPos <= NUM_COLS - 1) {
+                            overlays.push({ rowId: 'rowEkg', colPos: colPos, text: rhythmCode });
+                        }
                     }
                 }
 
-                if (found) {
-                    tooltip.innerHTML = `
-                        <div class="font-bold text-sky-300 border-b border-slate-700 pb-1 mb-1">${found.relMinStr}</div>
-                        <div class="text-white">${found.data.text}</div>
-                    `;
-                    tooltip.style.left = `${(e.clientX - rect.left) + 15}px`;
-                    tooltip.style.top = `${(e.clientY - rect.top) - 25}px`;
-                    tooltip.classList.remove('hidden');
-                } else {
-                    tooltip.classList.add('hidden');
+                // Defibrillation Mapping
+                if (item.category === 'shock' && item.text.includes('Defibrillation')) {
+                    const match = item.text.match(/\d+/);
+                    const joules = match ? match[0] : 'Shock';
+                    if (isExactCol && roundedCol >= 0 && roundedCol < NUM_COLS) {
+                        defibRowVals[roundedCol] = joules;
+                    } else if (colPos >= 0 && colPos <= NUM_COLS - 1) {
+                        overlays.push({ rowId: 'rowDefib', colPos: colPos, text: joules });
+                    }
+                }
+
+                // Adrenaline Mapping
+                if (item.category === 'drug' && item.text.includes('Adrenaline')) {
+                    if (isExactCol && roundedCol >= 0 && roundedCol < NUM_COLS) {
+                        adrRowVals[roundedCol] = '●';
+                    } else if (colPos >= 0 && colPos <= NUM_COLS - 1) {
+                        overlays.push({ rowId: 'rowAdr', colPos: colPos, text: '●' });
+                    }
+                }
+
+                // Amiodarone Mapping
+                if (item.category === 'drug' && item.text.toLowerCase().includes('amiodarone')) {
+                    const match = item.text.match(/\d+/);
+                    const dose = match ? match[0] : '●';
+                    if (isExactCol && roundedCol >= 0 && roundedCol < NUM_COLS) {
+                        amioRowVals[roundedCol] = dose;
+                    } else if (colPos >= 0 && colPos <= NUM_COLS - 1) {
+                        overlays.push({ rowId: 'rowAmio', colPos: colPos, text: dose });
+                    }
+                }
+
+                // EtCO2 Mapping
+                if (item.category === 'etco2') {
+                    const match = item.text.match(/End-tidal CO2 \(EtCO2\):\s*([\d.]+)/i) || item.text.match(/([\d.]+)/);
+                    const val = match ? match[1] : '';
+                    if (val) {
+                        if (isExactCol && roundedCol >= 0 && roundedCol < NUM_COLS) {
+                            etco2RowVals[roundedCol] = val;
+                        } else if (colPos >= 0 && colPos <= NUM_COLS - 1) {
+                            overlays.push({ rowId: 'rowEtco2', colPos: colPos, text: val });
+                        }
+                    }
+                }
+
+                // Items 6 - 13: Other Meds (Exclude Amiodarone), IV Fluids, Airway
+                if ((item.category === 'drug' && !item.text.includes('Adrenaline') && !item.text.toLowerCase().includes('amiodarone')) ||
+                    item.category === 'fluid' || item.category === 'airway') {
+                    
+                    let itemName = item.text;
+                    let existingItem = customItemsList.find(ci => ci.name === itemName);
+                    if (!existingItem) {
+                        existingItem = { name: itemName, colPositions: [] };
+                        customItemsList.push(existingItem);
+                    }
+                    existingItem.colPositions.push(colPos);
                 }
             });
 
-            canvas.addEventListener('mouseleave', () => {
-                tooltip.classList.add('hidden');
-            });
+            // Populate Fixed Rows (EKG, Defib, Adr, Amio, EtCO2)
+            renderRowCells('rowEkg', 'col-label', 'EKG', ekgRowVals, NUM_COLS);
+            renderRowCells('rowDefib', 'col-label', 'Defibrillation (J)', defibRowVals, NUM_COLS);
+            renderRowCells('rowAdr', 'col-label', 'Adrenaline (1 mg)', adrRowVals, NUM_COLS);
+            renderRowCells('rowAmio', 'col-label', 'Amiodarone (mg)', amioRowVals, NUM_COLS);
+            renderRowCells('rowEtco2', 'col-label', 'End-tidal CO2', etco2RowVals, NUM_COLS);
+
+            // Render Items 6 - 13 Rows & ซ่อนแถวที่ไม่มีข้อมูล
+            for (let i = 0; i < 8; i++) {
+                const rowId = `rowItem${i + 6}`;
+                const itemData = customItemsList[i];
+                let rowVals = Array(NUM_COLS).fill('');
+
+                if (itemData) {
+                    const labelText = `${i + 6}. ${itemData.name}`;
+                    itemData.colPositions.forEach(cp => {
+                        const rCol = Math.round(cp);
+                        if (Math.abs(cp - rCol) < 0.25 && rCol >= 0 && rCol < NUM_COLS) {
+                            rowVals[rCol] = '●';
+                        } else if (cp >= 0 && cp <= NUM_COLS - 1) {
+                            overlays.push({ rowId: rowId, colPos: cp, text: '●' });
+                        }
+                    });
+                    renderRowCells(rowId, 'col-label', labelText, rowVals, NUM_COLS);
+                    document.getElementById(rowId).style.display = ''; // แสดงแถวที่มีข้อมูล
+                } else {
+                    // หากไม่มีข้อมูล ให้ซ่อนแถวนี้ออกไป
+                    const tr = document.getElementById(rowId);
+                    if (tr) {
+                        tr.innerHTML = '';
+                        tr.style.display = 'none';
+                    }
+                }
+            }
+
+            // Render Grid Overlays (สำหรับข้อมูลที่ลงคาบเส้นแบ่งช่องเวลา)
+            const gridOverlayContainer = document.getElementById('gridOverlay');
+            gridOverlayContainer.innerHTML = '';
+
+            setTimeout(() => {
+                const table = document.getElementById('cprFormTable');
+                if (!table) return;
+
+                overlays.forEach(ov => {
+                    const rowElem = document.getElementById(ov.rowId);
+                    if (!rowElem || rowElem.style.display === 'none') return;
+
+                    const rowTop = rowElem.offsetTop;
+                    const rowHeight = rowElem.offsetHeight;
+
+                    // Calculate percentage X position across 30 columns
+                    const colPct = (ov.colPos / NUM_COLS) * 100;
+
+                    const div = document.createElement('div');
+                    div.className = 'grid-overlay-item';
+                    div.style.top = `${rowTop + (rowHeight / 2)}px`;
+                    div.style.left = `${colPct}%`;
+                    div.innerText = ov.text;
+                    gridOverlayContainer.appendChild(div);
+                });
+            }, 50);
+
+            // 4. Part ล่างของแบบฟอร์ม (Stop Time, Duration, Outcome Checkboxes)
+            const roscEvt = timelineData.find(t => t.category === 'rosc');
+            const deadEvt = timelineData.find(t => t.category === 'dead');
+
+            if (roscEvt || deadEvt) {
+                const endEvt = roscEvt || deadEvt;
+                document.getElementById('formStopTime').innerText = endEvt.time.substring(0, 5); // HH:mm
+            } else if (programStopTime) {
+                const h = programStopTime.getHours().toString().padStart(2, '0');
+                const m = programStopTime.getMinutes().toString().padStart(2, '0');
+                document.getElementById('formStopTime').innerText = `${h}:${m}`;
+            } else {
+                document.getElementById('formStopTime').innerText = "--:--";
+            }
+
+            let totalMins = 0;
+            if (programStartTime) {
+                const stopT = programStopTime || new Date();
+                totalMins = Math.round((stopT - programStartTime) / 60000);
+            }
+            document.getElementById('formTotalMins').innerText = totalMins;
+
+            document.getElementById('chkRosc').checked = !!roscEvt;
+            document.getElementById('chkDead').checked = !!deadEvt;
+
+            // Update สรุปสถิติ CPR ใน Action Summary Modal
+            document.getElementById('reportStatTime').innerText = document.getElementById('statTotalTime').innerText;
+            document.getElementById('reportStatCycles').innerText = document.getElementById('statCycles').innerText;
+            document.getElementById('reportStatAdr').innerText = document.getElementById('statAdrDoses').innerText;
+            document.getElementById('reportStatDefib').innerText = document.getElementById('statDefibCount').innerText;
+            document.getElementById('reportStatCcf').innerText = document.getElementById('statCcf').innerText;
         }
 
-        function printSummaryChart() {
-            window.print();
+        // Helper Function for Rendering Table Row Cells
+        function renderRowCells(rowId, labelClass, labelText, valArray, numCols) {
+            const tr = document.getElementById(rowId);
+            if (!tr) return;
+            tr.innerHTML = `<td class="${labelClass}">${labelText}</td>`;
+            for (let i = 0; i < numCols; i++) {
+                const td = document.createElement('td');
+                td.innerText = valArray[i] || '';
+                tr.appendChild(td);
+            }
         }
 
         function closeModal(id) {
