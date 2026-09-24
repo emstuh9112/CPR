@@ -68,7 +68,7 @@
             background: #94a3b8;
         }
 
-        /* Style จาก CPRform.html - ปรับแต่งรองรับแนวนอน 60 นาที */
+        /* Style จาก CPRform.html */
         .cpr-form-style {
             font-family: 'Sarabun', sans-serif;
             color: #000;
@@ -77,6 +77,7 @@
             margin-bottom: 8px;
             overflow-x: auto;
             position: relative;
+            width: 100%;
         }
         .cpr-table {
             width: 100%;
@@ -89,30 +90,34 @@
             padding: 2px 1px;
             text-align: center;
             height: auto;
-            min-height: 22px;
+            min-height: 24px;
             vertical-align: middle;
             font-size: 10px;
             position: relative;
             box-sizing: border-box;
+            word-break: break-word;
+            overflow-wrap: break-word;
         }
         .cpr-table th {
             background-color: #f8f9fa;
             font-weight: bold;
             font-size: 10px;
         }
-        /* ปรับ col-label ให้แสดงผลข้อความยาวๆ เป็น 2 บรรทัดได้ */
+        /* ข้อ 2: รายการด้านซ้ายให้สามารถขึ้นบรรทัดใหม่ได้เมื่อข้อความยาว และไม่ถูกตัด/บัง */
         .cpr-table .col-label {
-            width: 160px;
+            width: 180px;
+            min-width: 180px;
+            max-width: 180px;
             text-align: left;
-            padding-left: 4px;
-            padding-right: 2px;
+            padding: 4px;
             font-weight: 600;
-            white-space: normal;
-            word-break: break-word;
-            line-height: 1.15;
+            white-space: normal !important;
+            word-wrap: break-word !important;
+            word-break: break-word !important;
+            overflow-wrap: anywhere !important;
+            line-height: 1.25;
             font-size: 9.5px;
             height: auto !important;
-            min-height: 22px;
             overflow: visible !important;
         }
         .cpr-table th input[type="text"],
@@ -132,7 +137,7 @@
         .grid-overlay-container {
             position: absolute;
             top: 0;
-            left: 160px; /* ตรงกับความกว้าง col-label */
+            left: 180px;
             right: 0;
             bottom: 0;
             pointer-events: none;
@@ -149,8 +154,6 @@
             z-index: 10;
         }
 
-        /* PDF capture view: match the A4 landscape print geometry and allow
-           long left-side labels to expand instead of being clipped by a fixed row. */
         .pdf-action-summary {
             width: 1085px !important;
             max-width: 1085px !important;
@@ -167,31 +170,15 @@
         }
         .pdf-action-summary .cpr-table tr {
             height: auto !important;
-            min-height: 22px;
-        }
-        .pdf-action-summary .cpr-table th,
-        .pdf-action-summary .cpr-table td {
-            height: auto !important;
-            min-height: 22px;
-            overflow: visible !important;
-        }
-        .pdf-action-summary .cpr-table .col-label {
-            white-space: normal !important;
-            word-break: break-word !important;
-            overflow-wrap: anywhere !important;
-            height: auto !important;
-            min-height: 22px;
-            line-height: 1.15 !important;
-            overflow: visible !important;
         }
 
-        /* Printable view CSS setup */
+        /* Printable View CSS Setup */
         @media print {
             body * {
                 visibility: hidden;
             }
             
-            /* กรณีพิมพ์เอกสารธรรมดา (แนวตั้ง) */
+            /* สไตล์กรณีพิมพ์รายงานแนวตั้ง (ข้อ 3) */
             body.print-portrait #printable-area, 
             body.print-portrait #printable-area * {
                 visibility: visible;
@@ -201,12 +188,20 @@
                 left: 0;
                 top: 0;
                 width: 100%;
+                display: block !important;
             }
 
-            /* กรณีพิมพ์ Action Summary (แนวนอน)
-               สำคัญ: ซ่อนองค์ประกอบระดับ body ตัวอื่นด้วย display:none
-               เพื่อไม่ให้ layout ของหน้า application เดิมกินพื้นที่และสร้าง
-               หน้าเปล่าก่อนรายงาน */
+            /* ข้อ 3: รองรับการแบ่งหน้าเอกสาร พิมพ์หัวกระดาษทุกหน้าพร้อมเลขหน้า */
+            .print-page-header {
+                display: block;
+                position: running(page-header);
+            }
+            .print-page-break {
+                page-break-before: always;
+                break-before: page;
+            }
+
+            /* สไตล์กรณีพิมพ์ Action Summary (แนวนอน) */
             body.print-landscape > * {
                 display: none !important;
             }
@@ -218,7 +213,6 @@
                 display: block !important;
                 position: static !important;
                 inset: auto !important;
-                display: block !important;
                 width: 100% !important;
                 max-width: none !important;
                 height: auto !important;
@@ -228,7 +222,6 @@
                 padding: 0 !important;
                 margin: 0 !important;
                 box-shadow: none !important;
-                border-radius: 0 !important;
             }
             body.print-landscape #modalSummaryGraph > div {
                 width: 100% !important;
@@ -238,7 +231,6 @@
                 margin: 0 !important;
                 padding: 0 !important;
                 box-shadow: none !important;
-                border-radius: 0 !important;
             }
             body.print-landscape #modalSummaryGraph .no-print {
                 display: none !important;
@@ -247,52 +239,22 @@
                 width: 100% !important;
                 max-width: none !important;
                 overflow: visible !important;
-            }
-            body.print-landscape #cprFormContent > * {
-                break-inside: avoid;
-                page-break-inside: avoid;
-            }
-
-            /* ให้ browser แบ่งหน้าตาม section อย่างเป็นธรรมชาติ
-               และไม่สร้างหน้าว่างจาก flex/grid ของหน้าจอ */
-            body.print-landscape #cprFormContent {
                 display: block !important;
-            }
-            body.print-landscape #cprFormContent > .cpr-table-container {
-                break-inside: auto;
-                page-break-inside: auto;
-            }
-            body.print-landscape #cprFormContent .cpr-table-container + * {
-                break-before: auto;
-                page-break-before: auto;
-            }
-            body.print-landscape #cprFormTable thead {
-                display: table-header-group !important;
-            }
-            body.print-landscape #cprFormContent .cpr-table-container {
-                overflow: visible !important;
-                break-inside: auto;
-                page-break-inside: auto;
-            }
-            body.print-landscape #cprFormTable {
-                width: 100% !important;
-                min-width: 0 !important;
-                table-layout: fixed !important;
-            }
-            body.print-landscape #cprFormTable thead {
-                display: table-header-group;
-            }
-            body.print-landscape #cprFormTable tr {
-                break-inside: avoid;
-                page-break-inside: avoid;
-            }
-            body.print-landscape #cprFormContent textarea {
-                overflow: hidden !important;
             }
 
             @page portrait-page {
                 size: A4 portrait;
                 margin: 1cm;
+                @top-center {
+                    content: "รายงานบันทึกการช่วยฟื้นคืนชีพขั้นสูง (ACLS Resuscitation Record)";
+                    font-size: 9pt;
+                    font-family: 'Sarabun', sans-serif;
+                }
+                @bottom-right {
+                    content: "หน้า " counter(page) " จาก " counter(pages);
+                    font-size: 8pt;
+                    font-family: 'Sarabun', sans-serif;
+                }
             }
             @page landscape-page {
                 size: A4 landscape;
@@ -819,14 +781,14 @@
         </div>
     </div>
 
-    <!-- Action Summary Modal: CPR Form View (จาก CPRform.html) - ขยายรองรับ 60 นาที -->
+    <!-- Action Summary Modal: CPR Form View Dynamic Realtime Columns -->
     <div id="modalSummaryGraph" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-2 sm:p-4 overflow-y-auto">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-[98vw] my-auto flex flex-col p-4 sm:p-6 cpr-form-style">
             <!-- Modal Header -->
             <div class="flex justify-between items-center border-b pb-3 mb-4 no-print">
                 <div class="flex items-center gap-2">
                     <i class="fa-solid fa-file-medical text-blue-600 text-xl"></i>
-                    <h3 class="text-lg font-bold text-slate-800">แบบบันทึกการกู้ชีพ (Action Summary - CPR Form 60 นาที)</h3>
+                    <h3 class="text-lg font-bold text-slate-800">แบบบันทึกการกู้ชีพ (Action Summary)</h3>
                 </div>
                 <div class="flex gap-2 items-center">
                     <button onclick="printActionSummary()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 shadow">
@@ -874,16 +836,15 @@
                     <div id="formLabText" class="min-h-[16px] text-xs font-mono"></div>
                 </div>
 
-                <!-- CPR Grid Table (30 Columns / 60 Mins) -->
+                <!-- Dynamic Realtime CPR Grid Table -->
                 <div class="cpr-table-container relative overflow-x-auto">
                     <!-- Overlay สำหรับตัวหนังสือที่คาบอยู่บนเส้นแบ่งช่อง -->
                     <div id="gridOverlay" class="grid-overlay-container"></div>
 
-                    <table class="cpr-table min-w-[1000px]" id="cprFormTable">
+                    <table class="cpr-table" id="cprFormTable">
                         <thead>
                             <tr id="rowTime">
                                 <th class="col-label">เวลา (น.)</th>
-                                <!-- 30 Time columns generated by JS -->
                             </tr>
                         </thead>
                         <tbody>
@@ -940,7 +901,7 @@
                     </div>
                 </div>
 
-                <!-- สรุปสถิติกระบวนการ CPR ในรายงาน Action Summary (วางไว้ก่อนบันทึกทางการพยาบาล) -->
+                <!-- สรุปสถิติกระบวนการ CPR ในรายงาน Action Summary -->
                 <div class="border border-black rounded p-2 text-xs bg-gray-50 space-y-1">
                     <div class="font-bold border-b border-gray-400 pb-1 flex items-center gap-2">
                         <i class="fa-solid fa-chart-pie text-slate-700"></i>
@@ -981,9 +942,7 @@
 
     <script>
         // ============================================================
-        // ONLINE PDF / GOOGLE DRIVE CONFIGURATION
-        // 1) Deploy Google Apps Script as Web App
-        // 2) Put the /exec URL below
+        // ONLINE PDF / GOOGLE DRIVE CONFIGURATION (ห้ามแก้ไขตามคำสั่ง)
         // ============================================================
         const GOOGLE_DRIVE_CONFIG = {
             APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbzey0uEUpQYvIlzpYGFzF2WaxmiHEt2udsFiALx-mvaU_NmeBdMVyVEAucAeVA79lMBLg/exec",
@@ -999,27 +958,27 @@
         // Timers State
         let compTimer = null;
         let compTimeRemaining = 120; // 2 minutes
-        let compState = 'IDLE'; // IDLE, RUNNING, CHECK_PULSE, RESUME_CPR
-        let compCount = 0; // Total cycles
-        let compTotalSeconds = 0; // Accumulated compression seconds for CCF
+        let compState = 'IDLE'; 
+        let compCount = 0; 
+        let compTotalSeconds = 0; 
         let compAlarmInterval = null;
 
-        // CPR Metronome: 120 BPM = 1 beat every 500 ms
+        // CPR Metronome: 120 BPM
         let metronomeEnabled = true;
         let metronomeTimer = null;
         const METRONOME_BPM = 120;
         const METRONOME_INTERVAL_MS = 60000 / METRONOME_BPM;
 
-        let defibCount = 0; // Total Defibrillation Shocks
+        let defibCount = 0;
 
         let adrTimer = null;
         let adrTimeRemaining = 180; // 3 minutes
-        let adrState = 'IDLE'; // IDLE, RUNNING, INJECT
+        let adrState = 'IDLE'; 
         let adrDoses = 0;
         let adrAlarmInterval = null;
 
         // Timeline array
-        let timelineData = []; // { id, time, timestamp, text, category, relMin }
+        let timelineData = []; 
         let isRecordSaved = false;
 
         // Reversible Causes list
@@ -1038,7 +997,7 @@
 
         let selectedCauseIndex = null;
 
-        // Initialize Audio Context for Speech/Beeper Synthesis
+        // Initialize Audio Context
         let audioCtx = null;
         function getAudioContext() {
             if (!audioCtx) {
@@ -1053,7 +1012,6 @@
             updateMetronomeButton();
         });
 
-        // Format current date-time as HH:mm:ss
         function getRealTimeStr() {
             const d = new Date();
             return d.toTimeString().split(' ')[0];
@@ -1083,7 +1041,6 @@
             }
         }
 
-        // CPR metronome click for chest compression: 120 BPM
         function playMetronomeBeat() {
             if (!metronomeEnabled) return;
             try {
@@ -1110,8 +1067,6 @@
         function startMetronome() {
             stopMetronome();
             if (!metronomeEnabled) return;
-
-            // First beat immediately, then exactly 120 BPM (one beat / 500 ms).
             playMetronomeBeat();
             metronomeTimer = setInterval(playMetronomeBeat, METRONOME_INTERVAL_MS);
         }
@@ -1166,7 +1121,6 @@
 
         function toggleStartProgram() {
             if (!isProgramRunning) {
-                // Start Program
                 isProgramRunning = true;
                 programStartTime = new Date();
                 programStopTime = null;
@@ -1177,7 +1131,6 @@
 
                 addTimelineEvent("Start Program - เริ่มต้นการทำ ACLS Protocol", "system");
 
-                // Start Runtime Clock
                 runtimeInterval = setInterval(() => {
                     const elapsedSec = Math.floor((new Date() - programStartTime) / 1000);
                     document.getElementById('runtimeDisplay').innerText = `Elapsed: ${formatDuration(elapsedSec)}`;
@@ -1185,7 +1138,6 @@
                 }, 1000);
 
             } else {
-                // Stop Program
                 isProgramRunning = false;
                 programStopTime = new Date();
                 clearInterval(runtimeInterval);
@@ -1196,7 +1148,6 @@
                 const elapsedSec = Math.floor((programStopTime - programStartTime) / 1000);
                 addTimelineEvent(`Stop Program - สิ้นสุดโปรแกรม ใช้เวลารวม ${Math.floor(elapsedSec / 60)} นาที ${elapsedSec % 60} วินาที`, "system");
                 
-                // Stop ongoing alarms
                 clearCompAlarm();
                 clearAdrAlarm();
                 updateSummaryMetrics();
@@ -1212,7 +1163,6 @@
             addTimelineEvent(`EKG Rhythm: ${rhythm}`, rhythm === 'VF' || rhythm === 'pVT' ? 'shock' : 'ekg');
 
             if (rhythm === 'Asystole' || rhythm === 'PEA') {
-                // สำหรับ Asystole หรือ PEA เปลี่ยนปุ่มเป็น Resume CPR ทันที พร้อมไฟกระพริบและเสียงแจ้งเตือน
                 triggerResumeCprState();
             } else if (rhythm === 'VF' || rhythm === 'pVT') {
                 openDefibModal();
@@ -1226,7 +1176,6 @@
             document.getElementById('txtCompMain').innerHTML = `<i class="fa-solid fa-play"></i> RESUME CPR`;
             document.getElementById('timeCompSub').innerText = "กดเพื่อเริ่มทำ CPR รอบถัดไป";
 
-            // Sound and speech alert "Resume CPR"
             speakText("Resume CPR");
             clearCompAlarm();
             compAlarmInterval = setInterval(() => {
@@ -1246,17 +1195,12 @@
             defibCount++;
             addTimelineEvent(`Defibrillation ${joules} J`, 'shock');
             updateSummaryMetrics();
-
-            // สำหรับ VF / pVT หลังกด Defibrillation แล้วเปลี่ยนเป็น Resume CPR พร้อมไฟกระพริบและเสียงแจ้งเตือน
             triggerResumeCprState();
         }
 
         function handleChestCompClick() {
-            const btn = document.getElementById('btnChestComp');
-            
             if (compState === 'IDLE' || compState === 'RUNNING') {
                 if (compState === 'RUNNING') {
-                    // Early click before 2 minutes
                     clearInterval(compTimer);
                     stopMetronome();
                     const runSeconds = 120 - compTimeRemaining;
@@ -1265,20 +1209,15 @@
                 } else {
                     addTimelineEvent("Start Chest Compression", "comp");
                 }
-
                 startChestCompTimer();
 
             } else if (compState === 'CHECK_PULSE') {
-                // Clicked Check Pulse button
                 clearCompAlarm();
                 compCount++;
                 addTimelineEvent(`Check Pulse (เสร็จสิ้น CPR Cycle ที่ ${compCount})`, 'comp');
-
-                // Pop up EKG Rhythm Selection
                 openEkgModal();
 
             } else if (compState === 'RESUME_CPR') {
-                // Clicked Resume CPR button
                 clearCompAlarm();
                 addTimelineEvent("Resume CPR", "comp");
                 startChestCompTimer();
@@ -1320,7 +1259,6 @@
             document.getElementById('txtCompMain').innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> CHECK PULSE!`;
             document.getElementById('timeCompSub').innerText = "กดเมื่อทำการประเมินชีพจรแล้ว";
 
-            // Sound and speech every 5 seconds
             speakText("Check pulse");
             compAlarmInterval = setInterval(() => {
                 speakText("Check pulse");
@@ -1341,7 +1279,6 @@
                 startAdrCountdown();
 
             } else if (adrState === 'RUNNING') {
-                // Regular dose during run
                 adrDoses++;
                 addTimelineEvent(`Inject Adrenaline (Dose ที่ ${adrDoses})`, 'drug');
                 clearInterval(adrTimer);
@@ -1359,7 +1296,7 @@
 
         function startAdrCountdown() {
             adrState = 'RUNNING';
-            adrTimeRemaining = 180; // 3 mins
+            adrTimeRemaining = 180;
             clearAdrAlarm();
 
             const btn = document.getElementById('btnAdrenaline');
@@ -1654,6 +1591,7 @@
             });
         }
 
+        // ข้อ 4: ปุ่มบันทึกข้อมูล รวม Report Action Summary (หน้า 1) + Report พิมพ์เอกสาร (หน้า 2) เป็น PDF แล้วส่งเข้า Google Drive
         async function saveRecord() {
             if (isProgramRunning) {
                 alert("ไม่สามารถกดบันทึกได้! กรุณากด 'Stop Program' เพื่อยุติกระบวนการก่อนทำการบันทึกเอกสาร");
@@ -1674,11 +1612,9 @@
                 btnSave.className = "py-2.5 px-3 bg-slate-400 text-white rounded-lg text-xs font-semibold shadow transition flex items-center justify-center gap-1.5 cursor-wait";
                 btnSave.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังสร้าง PDF...';
 
-                // Make sure the two report views contain the latest data.
                 preparePrintableReport();
                 populateCPRForm();
 
-                // Wait for the CPR grid overlay/layout to finish rendering.
                 await new Promise(resolve => setTimeout(resolve, 250));
 
                 isRecordSaved = true;
@@ -1703,8 +1639,8 @@
 
                 alert(
                     "บันทึกข้อมูลสำเร็จ\n\n" +
-                    "สร้างรายงาน PDF 2 หน้าและส่งเข้า Google Drive เรียบร้อยแล้ว" +
-                    (uploadResult && uploadResult.fileName ? "\nชื่อไฟล์: " + uploadResult.fileName : "")
+                    "สร้างรายงาน PDF 2 หน้าและส่งเข้า Google Drive เรียบร้อยแล้ว\n" +
+                    (uploadResult && uploadResult.fileName ? "ชื่อไฟล์: " + uploadResult.fileName : "")
                 );
             } catch (error) {
                 console.error("Save / PDF upload error:", error);
@@ -1722,7 +1658,6 @@
             }
         }
 
-        // Prepare the same content used by the normal Print button.
         function preparePrintableReport() {
             const ptName = document.getElementById('ptName').value || "-";
             const ptAge = document.getElementById('ptAge').value || "-";
@@ -1770,7 +1705,6 @@
             });
         }
 
-        // Create a temporary visible clone so PDF capture does not disturb the UI.
         async function captureElementForPdf(sourceElement, options = {}) {
             const clone = sourceElement.cloneNode(true);
             const temp = document.createElement('div');
@@ -1802,13 +1736,11 @@
             clone.style.background = '#fff';
             clone.style.margin = '0';
 
-            // Remove controls that are intentionally not printed.
             clone.querySelectorAll('.no-print').forEach(el => el.remove());
 
             temp.appendChild(clone);
             document.body.appendChild(temp);
 
-            // html2canvas waits for fonts/images, but give the browser one extra layout frame.
             await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
             const canvas = await html2canvas(temp, {
@@ -1838,49 +1770,6 @@
             pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', x, y, imgWidth, imgHeight, undefined, 'FAST');
         }
 
-        // Add a tall canvas as multiple A4 pages without shrinking the whole report.
-        // This keeps the Action Summary readable and continues naturally onto page 3, 4, ...
-        function addTallCanvasToPdf(pdf, canvas, orientation, marginMm = 5) {
-            const pageWidth = orientation === 'portrait' ? 210 : 297;
-            const pageHeight = orientation === 'portrait' ? 297 : 210;
-            const usableWidth = pageWidth - (marginMm * 2);
-            const usableHeight = pageHeight - (marginMm * 2);
-
-            // Fit to page width only. The remaining height determines how much of the
-            // original canvas belongs on each PDF page.
-            const ratio = usableWidth / canvas.width;
-            const sliceHeightPx = Math.max(1, Math.floor(usableHeight / ratio));
-            let offsetY = 0;
-            let pageIndex = 0;
-
-            while (offsetY < canvas.height) {
-                const currentHeight = Math.min(sliceHeightPx, canvas.height - offsetY);
-                const sliceCanvas = document.createElement('canvas');
-                sliceCanvas.width = canvas.width;
-                sliceCanvas.height = currentHeight;
-                const ctx = sliceCanvas.getContext('2d');
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
-                ctx.drawImage(
-                    canvas,
-                    0, offsetY, canvas.width, currentHeight,
-                    0, 0, sliceCanvas.width, currentHeight
-                );
-
-                const imgWidth = usableWidth;
-                const imgHeight = currentHeight * ratio;
-                const x = marginMm;
-                const y = marginMm;
-                if (pageIndex > 0) pdf.addPage('a4', orientation);
-                pdf.addImage(sliceCanvas.toDataURL('image/jpeg', 0.95), 'JPEG', x, y, imgWidth, imgHeight, undefined, 'FAST');
-
-                offsetY += currentHeight;
-                pageIndex++;
-            }
-
-            return pageIndex;
-        }
-
         function makeSafeFileName(text) {
             return String(text || "Unknown Department")
                 .trim()
@@ -1889,55 +1778,52 @@
                 .substring(0, 120);
         }
 
-        function getSaveDateString() {
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    const hour = String(d.getHours()).padStart(2, '0');
-    const minute = String(d.getMinutes()).padStart(2, '0');
-    const second = String(d.getSeconds()).padStart(2, '0');
+        function getSaveFormattedDateTime() {
+            const d = new Date();
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const hh = String(d.getHours()).padStart(2, '0');
+            const mm = String(d.getMinutes()).padStart(2, '0');
+            const ss = String(d.getSeconds()).padStart(2, '0');
+            return `${y}-${m}-${day}_${hh}-${mm}-${ss}`;
+        }
 
-    return `${y}-${m}-${day}_${hour}-${minute}-${second}`;
-}
-
+        // ข้อ 4: รวม Report Action Summary (หน้า 1 แนวนอน) + Report พิมพ์เอกสาร (หน้า 2 แนวตั้ง)
         async function generateCombinedPdfBlob() {
-            // Page 1 = normal Print report (A4 portrait).
-            const printArea = document.getElementById('printable-area');
-            const page1Canvas = await captureElementForPdf(printArea, {
-                width: '794px',
-                scale: 2
-            });
-
-            // Action Summary = A4 landscape, automatically continued to additional pages.
             populateCPRForm();
             await new Promise(resolve => setTimeout(resolve, 300));
 
+            // หน้าที่ 1: Action Summary (แนวนอน)
             const cprContent = document.getElementById('cprFormContent');
-            // A4 landscape printable width at 96 CSS px/in, with 5 mm margins.
-            // Use a fixed width instead of the live viewport width so the PDF and
-            // browser Print preview use the same geometry.
-            const A4_LANDSCAPE_CSS_WIDTH = 1085;
             const actionCanvas = await captureElementForPdf(cprContent, {
-                width: `${A4_LANDSCAPE_CSS_WIDTH}px`,
+                width: '1085px',
                 scale: 2,
                 actionSummary: true
             });
 
+            // หน้าที่ 2: Report การพิมพ์ธรรมดา (แนวตั้ง)
+            const printArea = document.getElementById('printable-area');
+            const page2Canvas = await captureElementForPdf(printArea, {
+                width: '794px',
+                scale: 2
+            });
+
             const { jsPDF } = window.jspdf;
+            
+            // หน้าที่ 1 เป็น แนวนอน (Landscape)
             const pdf = new jsPDF({
-                orientation: 'portrait',
+                orientation: 'landscape',
                 unit: 'mm',
                 format: 'a4',
                 compress: true
             });
 
-            // Page 1 remains portrait.
-            addCanvasToPdf(pdf, page1Canvas, 'portrait', 8);
+            addCanvasToPdf(pdf, actionCanvas, 'landscape', 5);
 
-            // Page 2 onward = Action Summary landscape, split vertically as needed.
-            pdf.addPage('a4', 'landscape');
-            addTallCanvasToPdf(pdf, actionCanvas, 'landscape', 5);
+            // หน้าที่ 2 เป็น แนวตั้ง (Portrait)
+            pdf.addPage('a4', 'portrait');
+            addCanvasToPdf(pdf, page2Canvas, 'portrait', 8);
 
             return pdf.output('blob');
         }
@@ -1953,7 +1839,6 @@
             const pdfBlob = await generateCombinedPdfBlob();
             const arrayBuffer = await pdfBlob.arrayBuffer();
 
-            // Convert PDF bytes to base64 without exceeding the call stack.
             let binary = '';
             const bytes = new Uint8Array(arrayBuffer);
             const chunkSize = 0x8000;
@@ -1962,9 +1847,10 @@
             }
             const base64Pdf = btoa(binary);
 
+            // ข้อ 4: ตั้งชื่อไฟล์จาก แผนก/หอผู้ป่วย ตามด้วยวันที่และเวลาที่บันทึก
             const department = makeSafeFileName(document.getElementById('ptDept').value);
-            const dateStr = getSaveDateString();
-            const fileName = `${department}_${dateStr}.pdf`;
+            const dateTimeStr = getSaveFormattedDateTime();
+            const fileName = `${department}_${dateTimeStr}.pdf`;
 
             const payload = {
                 fileName,
@@ -1973,7 +1859,6 @@
                 folderId: GOOGLE_DRIVE_CONFIG.DRIVE_FOLDER_ID
             };
 
-            // text/plain avoids a CORS preflight for a Google Apps Script Web App.
             const response = await fetch(GOOGLE_DRIVE_CONFIG.APPS_SCRIPT_URL, {
                 method: 'POST',
                 mode: 'no-cors',
@@ -1983,11 +1868,10 @@
                 body: JSON.stringify(payload)
             });
 
-            // no-cors intentionally gives an opaque response. The Apps Script endpoint
-            // performs the Drive save; reaching this point means the browser sent the request.
             return { ok: true, fileName, responseType: response.type };
         }
 
+        // ข้อ 3: การกด Print หน้านี้ (แนวตั้ง) ให้ตรงกับต้นฉบับ 100% อนุญาตให้ขึ้นหน้าใหม่ได้พร้อมหัวกระดาษและหมายเลขหน้า
         function printDoc() {
             if (!isRecordSaved) {
                 alert("กรุณากดบันทึกข้อมูลก่อนทำรายการ");
@@ -2012,9 +1896,6 @@
                 return;
             }
 
-            // Refresh all values before printing. Browser print will naturally paginate
-            // the tall form onto additional A4 landscape pages. The table header is
-            // configured as a repeating print header above.
             populateCPRForm();
 
             document.body.classList.remove('print-portrait');
@@ -2033,7 +1914,6 @@
             });
         }
 
-        // Action Summary Implementation using CPRform structure (ปรับขยาย 30 ช่อง = 60 นาที)
         function showActionSummary() {
             if (!isRecordSaved) {
                 alert("กรุณากดบันทึกข้อมูลก่อนทำรายการ");
@@ -2044,6 +1924,7 @@
             document.getElementById('modalSummaryGraph').classList.remove('hidden');
         }
 
+        // ข้อ 1: ปรับปรุงการสร้างคอลัมน์เวลา real-time ในหน้ารายงาน Action Summary
         function populateCPRForm() {
             // 1. Fill Section 1
             document.getElementById('formName').innerText = document.getElementById('ptName').value || "-";
@@ -2057,7 +1938,7 @@
             document.getElementById('formRecorder').innerText = document.getElementById('ptRecorder').value || "-";
             document.getElementById('formEventDesc').innerText = document.getElementById('ptEventDesc').value || "-";
 
-            // 2. Fill Lab Section (Hydrogen ion & Hypo/Hyperkalemia)
+            // 2. Fill Lab Section
             const hCause = causesList.find(c => c.id === 'hydrogen');
             const kCause = causesList.find(c => c.id === 'hypoHyperK');
             let labTexts = [];
@@ -2065,160 +1946,162 @@
             if (kCause && kCause.text) labTexts.push(`Hypo/Hyperkalemia: ${kCause.text}`);
             document.getElementById('formLabText').innerText = labTexts.join(" | ") || "";
 
-            // 3. Build CPR Grid Table (30 Columns = 60 Minutes)
-            const NUM_COLS = 30;
-            const startTimestamp = programStartTime ? programStartTime : (timelineData[0] ? timelineData[0].timestamp : new Date());
-
-            // Generate time headers (Start time + 2 mins increments up to 60 mins)
-            let timeHeaders = [];
-            let startBaseDate = new Date(startTimestamp.getTime());
+            // -------------------------------------------------------------
+            // ข้อ 1: ประมวลผลเหตุการณ์ real-time และจัดกลุ่มตามนาทีที่มี event เกิดขึ้นจริง
+            // -------------------------------------------------------------
             
-            for (let i = 0; i < NUM_COLS; i++) {
-                const colTime = new Date(startBaseDate.getTime() + i * 2 * 60000);
-                const h = colTime.getHours().toString().padStart(2, '0');
-                const m = colTime.getMinutes().toString().padStart(2, '0');
-                timeHeaders.push({
-                    str: `${h}:${m}`,
-                    time: colTime
-                });
-            }
+            // กรองเอาเฉพาะ Event ที่มีข้อมูล stamp บนตาราง
+            const validEvents = timelineData.filter(item => {
+                return item.category === 'ekg' ||
+                       item.category === 'shock' ||
+                       item.category === 'drug' ||
+                       item.category === 'etco2' ||
+                       item.category === 'fluid' ||
+                       item.category === 'airway';
+            });
 
-            // Render Time Header Row
+            // หาจุดเวลา (Minute-bucket) ของ event แต่ละรายการ
+            // จัดกลุ่ม Event ลงในเวลาของนาทีนั้นๆ
+            let timeBuckets = []; // { timeStr, timestamp, events: [] }
+
+            validEvents.forEach(item => {
+                const itemTime = new Date(item.timestamp);
+                const h = itemTime.getHours().toString().padStart(2, '0');
+                const m = itemTime.getMinutes().toString().padStart(2, '0');
+                const timeKey = `${h}:${m}`;
+
+                let bucket = timeBuckets.find(b => b.timeStr === timeKey);
+                if (!bucket) {
+                    bucket = { timeStr: timeKey, timestamp: itemTime, events: [] };
+                    timeBuckets.push(bucket);
+                }
+                bucket.events.push(item);
+            });
+
+            // เรียงลำดับตามเวลาจริง
+            timeBuckets.sort((a, b) => a.timestamp - b.timestamp);
+
+            // จำนวนคอลัมน์ตั้งต้น default ไว้ 20 ช่อง
+            const DEFAULT_COLS = 20;
+            const actualColsCount = timeBuckets.length;
+            const numCols = Math.max(DEFAULT_COLS, actualColsCount);
+
+            // คำนวณความกว้างคอลัมน์ให้เท่าๆ กันเพื่อไม่ให้เกินขอบแนวนอน
+            const tableWidthPct = 100;
+            const colWidthPx = `calc((100% - 180px) / ${numCols})`;
+
+            // สร้าง Header เวลา
             const rowTime = document.getElementById('rowTime');
             rowTime.innerHTML = '<th class="col-label">เวลา (น.)</th>';
-            timeHeaders.forEach(th => {
+
+            for (let i = 0; i < numCols; i++) {
                 const thCell = document.createElement('th');
-                thCell.innerText = th.str;
+                thCell.style.width = colWidthPx;
+                if (i < actualColsCount) {
+                    thCell.innerText = timeBuckets[i].timeStr;
+                } else {
+                    thCell.innerText = ""; // หากไม่ครบ 20 ช่องให้เว้นว่างไว้
+                }
                 rowTime.appendChild(thCell);
-            });
-
-            // Prepare Data Grid Holders
-            let ekgRowVals = Array(NUM_COLS).fill('');
-            let defibRowVals = Array(NUM_COLS).fill('');
-            let adrRowVals = Array(NUM_COLS).fill('');
-            let amioRowVals = Array(NUM_COLS).fill('');
-            let etco2RowVals = Array(NUM_COLS).fill('');
-            let overlays = []; // For events falling between columns
-
-            // Items List (6 to 13) -> Exclude Amiodarone
-            let customItemsList = []; // { name, events: [] }
-
-            // Helper to calculate fractional column index based on timestamp
-            function getColPosition(eventTimestamp) {
-                const diffMs = eventTimestamp.getTime() - startTimestamp.getTime();
-                const diffMins = diffMs / 60000;
-                const colIndex = diffMins / 2; // 2 mins per column
-                return colIndex;
             }
 
-            // Process Timeline Logs
-            timelineData.forEach(item => {
-                const colPos = getColPosition(item.timestamp);
-                const roundedCol = Math.round(colPos);
-                const isExactCol = Math.abs(colPos - roundedCol) < 0.25;
+            // เตรียมโครงสร้าง Grid แต่ละแถว
+            let ekgRowVals = Array(numCols).fill('');
+            let defibRowVals = Array(numCols).fill('');
+            let adrRowVals = Array(numCols).fill('');
+            let amioRowVals = Array(numCols).fill('');
+            let etco2RowVals = Array(numCols).fill('');
 
-                // EKG Mapping
-                if (item.category === 'ekg' || (item.category === 'shock' && (item.text.includes('VF') || item.text.includes('pVT')))) {
-                    let rhythmCode = '';
-                    if (item.text.includes('Asystole')) rhythmCode = 'ASY';
-                    else if (item.text.includes('PEA')) rhythmCode = 'PEA';
-                    else if (item.text.includes('VF')) rhythmCode = 'VF';
-                    else if (item.text.includes('pVT')) rhythmCode = 'pVT';
+            let customItemsList = []; // { name, colIndices: [] }
 
-                    if (rhythmCode) {
-                        if (isExactCol && roundedCol >= 0 && roundedCol < NUM_COLS) {
-                            ekgRowVals[roundedCol] = rhythmCode;
-                        } else if (colPos >= 0 && colPos <= NUM_COLS - 1) {
-                            overlays.push({ rowId: 'rowEkg', colPos: colPos, text: rhythmCode });
+            // นำข้อมูลลงในช่องคอลัมน์ตามลำดับที่เกิดขึ้นจริง
+            timeBuckets.forEach((bucket, colIdx) => {
+                bucket.events.forEach(item => {
+                    // EKG
+                    if (item.category === 'ekg' || (item.category === 'shock' && (item.text.includes('VF') || item.text.includes('pVT')))) {
+                        let rhythmCode = '';
+                        if (item.text.includes('Asystole')) rhythmCode = 'ASY';
+                        else if (item.text.includes('PEA')) rhythmCode = 'PEA';
+                        else if (item.text.includes('VF')) rhythmCode = 'VF';
+                        else if (item.text.includes('pVT')) rhythmCode = 'pVT';
+                        if (rhythmCode) ekgRowVals[colIdx] = rhythmCode;
+                    }
+
+                    // Defibrillation
+                    if (item.category === 'shock' && item.text.includes('Defibrillation')) {
+                        const match = item.text.match(/\d+/);
+                        defibRowVals[colIdx] = match ? match[0] : 'Shock';
+                    }
+
+                    // Adrenaline
+                    if (item.category === 'drug' && item.text.includes('Adrenaline')) {
+                        adrRowVals[colIdx] = '●';
+                    }
+
+                    // Amiodarone
+                    if (item.category === 'drug' && item.text.toLowerCase().includes('amiodarone')) {
+                        const match = item.text.match(/\d+/);
+                        amioRowVals[colIdx] = match ? match[0] : '●';
+                    }
+
+                    // EtCO2
+                    if (item.category === 'etco2') {
+                        const match = item.text.match(/End-tidal CO2 \(EtCO2\):\s*([\d.]+)/i) || item.text.match(/([\d.]+)/);
+                        if (match) etco2RowVals[colIdx] = match[1];
+                    }
+
+                    // Items 6 - 13: ยาอื่นๆ, สารน้ำ, ทางเดินหายใจ
+                    if ((item.category === 'drug' && !item.text.includes('Adrenaline') && !item.text.toLowerCase().includes('amiodarone')) ||
+                        item.category === 'fluid' || item.category === 'airway') {
+                        
+                        let itemName = item.text;
+                        let existingItem = customItemsList.find(ci => ci.name === itemName);
+                        if (!existingItem) {
+                            existingItem = { name: itemName, colIndices: [] };
+                            customItemsList.push(existingItem);
+                        }
+                        if (!existingItem.colIndices.includes(colIdx)) {
+                            existingItem.colIndices.push(colIdx);
                         }
                     }
-                }
-
-                // Defibrillation Mapping
-                if (item.category === 'shock' && item.text.includes('Defibrillation')) {
-                    const match = item.text.match(/\d+/);
-                    const joules = match ? match[0] : 'Shock';
-                    if (isExactCol && roundedCol >= 0 && roundedCol < NUM_COLS) {
-                        defibRowVals[roundedCol] = joules;
-                    } else if (colPos >= 0 && colPos <= NUM_COLS - 1) {
-                        overlays.push({ rowId: 'rowDefib', colPos: colPos, text: joules });
-                    }
-                }
-
-                // Adrenaline Mapping
-                if (item.category === 'drug' && item.text.includes('Adrenaline')) {
-                    if (isExactCol && roundedCol >= 0 && roundedCol < NUM_COLS) {
-                        adrRowVals[roundedCol] = '●';
-                    } else if (colPos >= 0 && colPos <= NUM_COLS - 1) {
-                        overlays.push({ rowId: 'rowAdr', colPos: colPos, text: '●' });
-                    }
-                }
-
-                // Amiodarone Mapping
-                if (item.category === 'drug' && item.text.toLowerCase().includes('amiodarone')) {
-                    const match = item.text.match(/\d+/);
-                    const dose = match ? match[0] : '●';
-                    if (isExactCol && roundedCol >= 0 && roundedCol < NUM_COLS) {
-                        amioRowVals[roundedCol] = dose;
-                    } else if (colPos >= 0 && colPos <= NUM_COLS - 1) {
-                        overlays.push({ rowId: 'rowAmio', colPos: colPos, text: dose });
-                    }
-                }
-
-                // EtCO2 Mapping
-                if (item.category === 'etco2') {
-                    const match = item.text.match(/End-tidal CO2 \(EtCO2\):\s*([\d.]+)/i) || item.text.match(/([\d.]+)/);
-                    const val = match ? match[1] : '';
-                    if (val) {
-                        if (isExactCol && roundedCol >= 0 && roundedCol < NUM_COLS) {
-                            etco2RowVals[roundedCol] = val;
-                        } else if (colPos >= 0 && colPos <= NUM_COLS - 1) {
-                            overlays.push({ rowId: 'rowEtco2', colPos: colPos, text: val });
-                        }
-                    }
-                }
-
-                // Items 6 - 13: Other Meds (Exclude Amiodarone), IV Fluids, Airway
-                if ((item.category === 'drug' && !item.text.includes('Adrenaline') && !item.text.toLowerCase().includes('amiodarone')) ||
-                    item.category === 'fluid' || item.category === 'airway') {
-                    
-                    let itemName = item.text;
-                    let existingItem = customItemsList.find(ci => ci.name === itemName);
-                    if (!existingItem) {
-                        existingItem = { name: itemName, colPositions: [] };
-                        customItemsList.push(existingItem);
-                    }
-                    existingItem.colPositions.push(colPos);
-                }
+                });
             });
 
-            // Populate Fixed Rows (EKG, Defib, Adr, Amio, EtCO2)
-            renderRowCells('rowEkg', 'col-label', 'EKG', ekgRowVals, NUM_COLS);
-            renderRowCells('rowDefib', 'col-label', 'Defibrillation (J)', defibRowVals, NUM_COLS);
-            renderRowCells('rowAdr', 'col-label', 'Adrenaline (1 mg)', adrRowVals, NUM_COLS);
-            renderRowCells('rowAmio', 'col-label', 'Amiodarone (mg)', amioRowVals, NUM_COLS);
-            renderRowCells('rowEtco2', 'col-label', 'End-tidal CO2', etco2RowVals, NUM_COLS);
+            // Helper เรนเดอร์แต่ละแถว
+            function renderRowDynamic(rowId, labelText, rowVals) {
+                const tr = document.getElementById(rowId);
+                if (!tr) return;
+                tr.innerHTML = `<td class="col-label">${labelText}</td>`;
+                tr.style.display = '';
 
-            // Render Items 6 - 13 Rows & ซ่อนแถวที่ไม่มีข้อมูล
+                for (let i = 0; i < numCols; i++) {
+                    const td = document.createElement('td');
+                    td.style.width = colWidthPx;
+                    td.innerText = rowVals[i] || '';
+                    tr.appendChild(td);
+                }
+            }
+
+            // แสดงผลแถวดั้งเดิม
+            renderRowDynamic('rowEkg', 'EKG', ekgRowVals);
+            renderRowDynamic('rowDefib', 'Defibrillation (J)', defibRowVals);
+            renderRowDynamic('rowAdr', 'Adrenaline (1 mg)', adrRowVals);
+            renderRowDynamic('rowAmio', 'Amiodarone (mg)', amioRowVals);
+            renderRowDynamic('rowEtco2', 'End-tidal CO2', etco2RowVals);
+
+            // เรนเดอร์แถวที่ 6-13 และซ่อนแถวที่ไม่ได้ใช้งาน
             for (let i = 0; i < 8; i++) {
                 const rowId = `rowItem${i + 6}`;
                 const itemData = customItemsList[i];
-                let rowVals = Array(NUM_COLS).fill('');
+                let rowVals = Array(numCols).fill('');
 
                 if (itemData) {
                     const labelText = `${i + 6}. ${itemData.name}`;
-                    itemData.colPositions.forEach(cp => {
-                        const rCol = Math.round(cp);
-                        if (Math.abs(cp - rCol) < 0.25 && rCol >= 0 && rCol < NUM_COLS) {
-                            rowVals[rCol] = '●';
-                        } else if (cp >= 0 && cp <= NUM_COLS - 1) {
-                            overlays.push({ rowId: rowId, colPos: cp, text: '●' });
-                        }
+                    itemData.colIndices.forEach(idx => {
+                        rowVals[idx] = '●';
                     });
-                    renderRowCells(rowId, 'col-label', labelText, rowVals, NUM_COLS);
-                    document.getElementById(rowId).style.display = ''; // แสดงแถวที่มีข้อมูล
+                    renderRowDynamic(rowId, labelText, rowVals);
                 } else {
-                    // หากไม่มีข้อมูล ให้ซ่อนแถวนี้ออกไป
                     const tr = document.getElementById(rowId);
                     if (tr) {
                         tr.innerHTML = '';
@@ -2227,44 +2110,16 @@
                 }
             }
 
-            // Render Grid Overlays (สำหรับข้อมูลที่ลงคาบเส้นแบ่งช่องเวลา)
-            const gridOverlayContainer = document.getElementById('gridOverlay');
-            gridOverlayContainer.innerHTML = '';
+            // ล้าง overlay เก่าออก
+            document.getElementById('gridOverlay').innerHTML = '';
 
-            setTimeout(() => {
-                const table = document.getElementById('cprFormTable');
-                if (!table) return;
-
-                overlays.forEach(ov => {
-                    const rowElem = document.getElementById(ov.rowId);
-                    if (!rowElem || rowElem.style.display === 'none') return;
-
-                    // Use real geometry relative to the overlay container.
-                    // offsetTop on table rows can resolve to the table/header origin
-                    // when the DOM is cloned for html2canvas, which places overlay
-                    // values in the time-header row of the Drive PDF.
-                    const overlayRect = gridOverlayContainer.getBoundingClientRect();
-                    const rowRect = rowElem.getBoundingClientRect();
-                    const rowCenterY = (rowRect.top - overlayRect.top) + (rowRect.height / 2);
-
-                    const colPct = (ov.colPos / NUM_COLS) * 100;
-
-                    const div = document.createElement('div');
-                    div.className = 'grid-overlay-item';
-                    div.style.top = `${rowCenterY}px`;
-                    div.style.left = `${colPct}%`;
-                    div.innerText = ov.text;
-                    gridOverlayContainer.appendChild(div);
-                });
-            }, 50);
-
-            // 4. Part ล่างของแบบฟอร์ม (Stop Time, Duration, Outcome Checkboxes)
+            // 4. สรุปท้ายแบบฟอร์ม
             const roscEvt = timelineData.find(t => t.category === 'rosc');
             const deadEvt = timelineData.find(t => t.category === 'dead');
 
             if (roscEvt || deadEvt) {
                 const endEvt = roscEvt || deadEvt;
-                document.getElementById('formStopTime').innerText = endEvt.time.substring(0, 5); // HH:mm
+                document.getElementById('formStopTime').innerText = endEvt.time.substring(0, 5);
             } else if (programStopTime) {
                 const h = programStopTime.getHours().toString().padStart(2, '0');
                 const m = programStopTime.getMinutes().toString().padStart(2, '0');
@@ -2283,7 +2138,6 @@
             document.getElementById('chkRosc').checked = !!roscEvt;
             document.getElementById('chkDead').checked = !!deadEvt;
 
-            // Update สรุปสถิติ CPR ใน Action Summary Modal
             document.getElementById('reportStatTime').innerText = document.getElementById('statTotalTime').innerText;
             document.getElementById('reportStatCycles').innerText = document.getElementById('statCycles').innerText;
             document.getElementById('reportStatAdr').innerText = document.getElementById('statAdrDoses').innerText;
@@ -2291,24 +2145,12 @@
             document.getElementById('reportStatCcf').innerText = document.getElementById('statCcf').innerText;
         }
 
-        // Helper Function for Rendering Table Row Cells
-        function renderRowCells(rowId, labelClass, labelText, valArray, numCols) {
-            const tr = document.getElementById(rowId);
-            if (!tr) return;
-            tr.innerHTML = `<td class="${labelClass}">${labelText}</td>`;
-            for (let i = 0; i < numCols; i++) {
-                const td = document.createElement('td');
-                td.innerText = valArray[i] || '';
-                tr.appendChild(td);
-            }
-        }
-
-        function closeModal(id) {
-            document.getElementById(id).classList.add('hidden');
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
         }
 
         function confirmResetAll() {
-            if (confirm("คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลทั้งหมด? ข้อมูลที่บันทึกไว้จะถูกรีเซ็ตกลับเป็นค่าเริ่มต้น")) {
+            if (confirm("คุณต้องการล้างข้อมูลทั้งหมด และเริ่มต้นใหม่ใช่หรือไม่?")) {
                 location.reload();
             }
         }
